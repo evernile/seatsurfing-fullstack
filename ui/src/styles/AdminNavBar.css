@@ -1,0 +1,32 @@
+.admin-navbar .navbar-brand {
+  box-shadow: inset -1px 0 0 rgba(0, 0, 0, 0.25);
+  min-width: 50px;
+}
+
+.admin-navbar .navbar-brand > img {
+  height: 30px;
+}
+
+.admin-navbar .navbar-toggler {
+  top: 0.25rem;
+  right: 1rem;
+}
+
+.admin-navbar form {
+  padding: 6px;
+}
+
+.admin-navbar form input {
+  border: 0;
+  color: #000;
+}
+
+.admin-navbar .form-control-dark {
+  background-color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.7);
+}
+
+.admin-navbar .form-control-dark:focus {
+  border-color: transparent;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}

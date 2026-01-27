@@ -1,0 +1,4 @@
+ui/.next/
+ui/node_modules/
+ui/build/
+e2e/

@@ -1,0 +1,13 @@
+from fastapi import FastAPI
+from api.auth import router as auth_router
+from api.user import router as user_router
+
+app = FastAPI()
+
+app.include_router(auth_router)
+app.include_router(user_router)
+
+
+@app.get("/healthcheck")
+def healthcheck():
+    return {"status": "ok"}

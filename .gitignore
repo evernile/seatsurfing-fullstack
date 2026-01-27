@@ -1,0 +1,5 @@
+.DS_Store
+.eslintcache
+docker-readme-modified.md
+.vscode/
+node_modules/
