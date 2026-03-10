@@ -12,8 +12,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.models import User
 
-# Se hai già un model/tabella per user preferences, adattiamo qui sotto.
-# Per ora uso una tabella "UserPreference" se esiste, altrimenti ti do fallback in-memory (NON persistente).
+
 try:
     from app.models import UserPreference  # type: ignore
     HAS_PREF_MODEL = True
@@ -48,10 +47,6 @@ class GetSettingsResponse(BaseModel):
 
 
 # ---------------- "Crypto" compat ----------------
-# Go usa CanCrypt() + EncryptString/DecryptString
-# Qui: se non c'è CRYPT_KEY -> CanCrypt False
-# Se vuoi la stessa crypto del Go, bisogna vedere come implementano EncryptString lì.
-# Per ora: stub "reversibile" solo se CRYPT_KEY esiste, altrimenti blocca.
 
 def _can_crypt() -> bool:
     return bool(os.getenv("CRYPT_KEY"))
@@ -60,8 +55,7 @@ def _can_crypt() -> bool:
 def _encrypt_string(s: str) -> str:
     if not _can_crypt():
         raise RuntimeError("CRYPT_KEY missing")
-    # Stub: NON sicuro, serve solo compat funzionale.
-    # Se vuoi crypto vera come Go, incollami EncryptString/DecryptString dal repo Go.
+    
     key = os.getenv("CRYPT_KEY", "")
     return f"enc::{key[:4]}::{s}"
 
@@ -76,7 +70,7 @@ def _decrypt_string(s: str) -> str:
     return s
 
 
-# ---------------- Preference definitions (replica Go) ----------------
+# ---------------- Preference definitions ----------------
 # SettingType enum
 SETTING_TYPE_STRING = 1
 SETTING_TYPE_ENCRYPTED_STRING = 2
@@ -84,7 +78,6 @@ SETTING_TYPE_BOOL = 3
 SETTING_TYPE_INT = 4
 SETTING_TYPE_INT_ARRAY = 5
 
-# Preference names (devono matchare Go)
 PREF_ENTER_TIME = "enterTime"
 PREF_WORKDAY_START = "workdayStart"
 PREF_WORKDAY_END = "workdayEnd"
@@ -105,7 +98,7 @@ PREF_APPROVAL_NOTIFICATIONS = "approvalNotifications"
 PREF_24H_TIME = "hourTime24"
 PREF_DATE_FORMAT = "dateFormat"
 
-# Enter time allowed values (replica Go constants)
+# Enter time allowed values
 PREF_ENTER_TIME_NOW = 0
 PREF_ENTER_TIME_NEXT_DAY = 1
 PREF_ENTER_TIME_NEXT_WORKDAY = 2
@@ -135,7 +128,7 @@ _VALID_PREF_NAMES = {
 
 
 def _get_pref_type(name: str) -> int:
-    # Replica della logica getPreferenceType del Go
+    
     if name in {
         PREF_BOOKED_COLOR,
         PREF_BUDDY_BOOKED_COLOR,
@@ -241,8 +234,6 @@ def _is_valid_pref_value(name: str, value: str) -> bool:
 
 
 # ---------------- Persistence layer ----------------
-# Se non hai UserPreference model, manteniamo un fallback in-memory per non bloccare il FE.
-# MA: appena mi dici com'è la tabella in Python, la rendiamo persistente.
 
 _IN_MEMORY_PREFS: dict[tuple[int, str], str] = {}
 
@@ -265,7 +256,7 @@ def _repo_set(db: Session, user_id: int, name: str, value: str) -> None:
         if row:
             row.value = value
         else:
-            row = UserPreference(user_id=user_id, name=name, value=value)  # type: ignore
+            row = UserPreference(user_id=user_id, name=name, value=value)  
             db.add(row)
         db.commit()
         return
@@ -289,7 +280,7 @@ def _copy_to_rest(name: str, value: str) -> GetSettingsResponse:
         try:
             return GetSettingsResponse(name=name, value=_decrypt_string(value))
         except Exception:
-            # se manca CRYPT_KEY, comportiamoci come errore server
+            
             raise HTTPException(status_code=500, detail="Crypt key missing")
     return GetSettingsResponse(name=name, value=value)
 
@@ -310,12 +301,11 @@ def caldav_list_calendars(
     payload: ListCaldavCalendarsRequest,
     current_user: User = Depends(get_current_user),
 ):
-    # Go: se CanCrypt() false -> 500
+    
     if not _can_crypt():
         raise HTTPException(status_code=500, detail="CalDAV integration requires CRYPT_KEY")
 
-    # Stub: senza client vero, restituiamo 404 (Not found) come Go quando connect/list fallisce
-    # Se vuoi implementazione vera: dimmi se vuoi usare caldav lib + requests.
+    
     raise HTTPException(status_code=404, detail="Not found")
 
 
@@ -328,7 +318,7 @@ def get_all(
     res: list[GetSettingsResponse] = []
     for r in rows:
         if not _is_valid_pref_name(r.name):
-            # in Go non capita perché repository contiene solo nomi validi
+            
             continue
         res.append(_copy_to_rest(r.name, r.value))
     return res
@@ -365,8 +355,7 @@ def get_preference(
     except KeyError:
         raise HTTPException(status_code=404, detail="Not found")
 
-    # Go: getPreference ritorna value grezzo JSON (string)
-    # Se encrypted -> decrypt
+    
     if _get_pref_type(name) == SETTING_TYPE_ENCRYPTED_STRING:
         try:
             return _decrypt_string(value)

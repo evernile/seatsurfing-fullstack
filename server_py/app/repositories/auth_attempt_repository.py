@@ -31,13 +31,11 @@ class AuthAttemptRepository:
         Dipende da config: LoginProtectionSlidingWindowSeconds, LoginProtectionMaxFails, LoginProtectionBanMinutes.
         Se non ce l’hai ancora in Python config, metti default qui (poi li colleghi al tuo config).
         """
-        # --- DEFAULTS (puoi agganciarli al tuo config quando vuoi) ---
+        # --- DEFAULTS ---
         sliding_window_seconds = 300
         max_fails = 5
         ban_minutes = 15
-        # -----------------------------------------------------------
-
-        # last successful login timestamp (fallback epoch)
+        
         last_success = (
             db.query(AuthAttempt.timestamp)
             .filter(AuthAttempt.user_id == user.id)
@@ -51,8 +49,7 @@ class AuthAttemptRepository:
 
         limit = datetime.utcnow() - timedelta(seconds=sliding_window_seconds)
 
-        # Go query:
-        # COUNT where user_id=$1 AND timestamp > limit AND timestamp > lastSuccessfulLogin
+       
         num_failed = (
             db.query(AuthAttempt)
             .filter(AuthAttempt.user_id == user.id)

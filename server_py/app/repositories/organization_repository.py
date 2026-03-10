@@ -1,5 +1,3 @@
-# server_py/app/repositories/organization_repository.py
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -49,13 +47,13 @@ class OrganizationRepository:
           WHERE (CURRENT_DATE::date - signup_date::date) = $1
           + opzionale NOT EXISTS su settings.name
         """
-        # Postgres safe date diff:
+        
         q = db.query(Organization).filter(
             (func.current_date() - func.date(Organization.signup_date)) == int(days_passed)
         )
 
         if setting_exists:
-            # correlated NOT EXISTS
+            
             q = q.filter(
                 text(
                     "NOT EXISTS ("

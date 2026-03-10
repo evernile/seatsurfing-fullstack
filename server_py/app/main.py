@@ -70,8 +70,7 @@ app.include_router(auth_provider_router)
 
 @app.on_event("startup")
 def on_startup():
-    # IMPORTANT: su DB Go originale NON seedare mai.
-    # Lo abiliti solo se vuoi seedare un DB vuoto di sviluppo.
+    
     if os.getenv("SEED_ENABLED", "0") != "1":
         return
 

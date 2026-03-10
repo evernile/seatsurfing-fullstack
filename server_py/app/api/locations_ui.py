@@ -18,7 +18,7 @@ repo = LocationRepository()
 router = APIRouter(prefix="/location", tags=["ui-compat"])
 
 
-# --- Schemi minimi per compat FE (POST /location/search) ---
+
 class SearchAttribute(BaseModel):
     attributeId: str
     op: str | None = None

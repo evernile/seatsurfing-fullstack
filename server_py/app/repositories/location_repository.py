@@ -325,9 +325,7 @@ class LocationRepository:
             {"loc_id": location_id},
         )
 
-        # space_attribute_values su entity location
-        # NB: SpaceAttributeValueEntityTypeLocation nel Go è una costante.
-        # Qui uso 'location' (se nel DB è diverso, lo cambiamo dopo guardando la tabella).
+        
         db.execute(
             text("""
                 DELETE FROM space_attribute_values
@@ -368,7 +366,7 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # recurring_bookings per org (se tabella esiste nel DB originale)
+        # recurring_bookings per org
         db.execute(
             text("""
                 DELETE FROM recurring_bookings
@@ -383,7 +381,7 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # space_attribute_values per locations da eliminare (come Go)
+        # space_attribute_values per locations
         db.execute(
             text("""
                 DELETE FROM space_attribute_values

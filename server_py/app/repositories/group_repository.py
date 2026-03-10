@@ -1,5 +1,3 @@
-# app/repositories/group_repository.py
-
 from __future__ import annotations
 
 import uuid
@@ -12,7 +10,7 @@ from app.models import Group, UserGroup
 
 
 class GroupRepository:
-    # ---------- CRUD (Go-like) ----------
+    # ---------- CRUD ----------
 
     def create(self, db: Session, e: Group) -> Group:
         db.add(e)
@@ -91,13 +89,13 @@ class GroupRepository:
         return e
 
     def delete(self, db: Session, e: Group) -> None:
-        # Go: delete memberships first, then group
+        
         db.query(UserGroup).filter(UserGroup.group_id == e.id).delete(synchronize_session=False)
         db.delete(e)
         db.commit()
 
     def delete_all(self, db: Session, organization_id: str) -> None:
-        # Go: delete users_groups where group in org, then groups in org
+        
         db.query(UserGroup).filter(
             UserGroup.group_id.in_(
                 db.query(Group.id).filter(Group.organization_id == organization_id)
@@ -107,7 +105,7 @@ class GroupRepository:
         db.query(Group).filter(Group.organization_id == organization_id).delete(synchronize_session=False)
         db.commit()
 
-    # ---------- Membership (Go-like) ----------
+    # ---------- Membership ----------
 
     def get_member_user_ids(self, db: Session, group_id: str) -> list[str]:
         try:
@@ -125,7 +123,7 @@ class GroupRepository:
     def add_members(self, db: Session, group_id: str, user_public_ids: list[str]) -> None:
         gid = uuid.UUID(group_id)
 
-        # Go builds a single INSERT; here we "merge" rows (idempotent-ish with PK)
+        
         for uid in user_public_ids:
             db.merge(UserGroup(group_id=gid, user_id=uuid.UUID(uid)))
 
@@ -142,7 +140,7 @@ class GroupRepository:
 
         db.commit()
 
-    # Utility (non-Go, ma ti torna utile spesso)
+    # Utility 
     def get_user_group_ids(self, db: Session, user_public_id: str) -> set[str]:
         try:
             uid = uuid.UUID(user_public_id)

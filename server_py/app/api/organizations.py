@@ -97,7 +97,7 @@ def get_org_domains(
     if not org:
         raise HTTPException(status_code=404, detail="Organization not found")
 
-    # stub compatibile UI
+    
     return []
 
 

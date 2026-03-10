@@ -23,11 +23,11 @@ def can_access_org(user: User, organization_id: str) -> bool:
     return bool(user.organization_id) and (user.role in ("admin", "org_admin", "super_admin"))
 
 def can_space_admin_org(user: User, organization_id: str) -> bool:
-    # per ora: admin = può gestire locations/spaces.
+    # admin può gestire locations/spaces.
     return can_access_org(user, organization_id) and (user.role == "admin")
 
 def is_valid_timezone(tz: str) -> bool:
-    # minimal check: non blocca tutto. Se vuoi la validazione strong, la mettiamo con zoneinfo.
+    
     return isinstance(tz, str) and len(tz) <= 64
 
 def detect_image_type_and_size(data: bytes) -> tuple[str, int, int]:
@@ -183,7 +183,7 @@ def create_location(
         map_scale=payload.map_scale,
     )
     e = repo.create(db, e)
-    # Go ritorna Created con ID; qui ritorniamo un body semplice
+    
     return {"id": e.id}
 
 

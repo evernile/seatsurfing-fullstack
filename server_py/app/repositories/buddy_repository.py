@@ -1,5 +1,3 @@
-# app/repositories/buddy_repository.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -46,7 +44,7 @@ class BuddyRepository:
         db.commit()
 
     def run_schema_upgrade(self, cur_version: int, target_version: int) -> None:
-        # Go: No updates yet
+        
         return
 
     def create(self, db: Session, e: Buddy) -> Buddy:

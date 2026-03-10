@@ -1,5 +1,3 @@
-# app/repositories/mail_log_repository.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass

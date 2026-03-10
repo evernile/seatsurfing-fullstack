@@ -6,5 +6,5 @@ router = APIRouter(prefix="/space-attribute", tags=["ui-compat"])
 
 @router.get("/")
 def list_space_attributes(current_user: User = Depends(get_current_user)):
-    # Stub: nessun attributo
+    
     return []

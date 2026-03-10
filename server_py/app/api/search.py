@@ -6,21 +6,19 @@ from sqlalchemy import or_
 
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models import User, Location, Space, Group  # assicurati che Group esista nei models
+from app.models import User, Location, Space, Group  
 
 router = APIRouter(prefix="/search", tags=["ui-compat"])
 
 
-# --- permessi "compat" (coerenti con quello che avete già fatto finora) ---
+# --- permessi "compat" ---
 def _can_space_admin_org(user: User) -> bool:
-    # nel Go: CanSpaceAdminOrg(user, user.OrganizationID)
-    # nel vostro Python avete ruoli tipo "admin", "org_admin", "super_admin"
+    
     return getattr(user, "role", None) in ("admin", "org_admin", "super_admin")
 
 
 def _can_admin_org(user: User) -> bool:
-    # nel Go: CanAdminOrg(user, user.OrganizationID)
-    # spesso coincide con admin/org_admin/super_admin; se vuoi più stretto metti solo ("org_admin","super_admin")
+   
     return getattr(user, "role", None) in ("admin", "org_admin", "super_admin")
 
 
@@ -39,7 +37,7 @@ def get_results(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    # --- auth/permessi come in Go ---
+    # --- auth/permessi ---
     if not _can_space_admin_org(current_user):
         raise HTTPException(status_code=403, detail="Forbidden")
 
@@ -55,11 +53,10 @@ def get_results(
 
     # ---- USERS ----
     if includeUsers == "1" and _can_admin_org(current_user):
-        # nel Go: GetUserRepository().GetByKeyword(org, keyword)
-        # qui: email / firstname / lastname (se esistono) + full_name se esiste
+       
         q = db.query(User).filter(User.organization_id == current_user.organization_id)
 
-        # campi opzionali: firstname/lastname/full_name potrebbero non esserci
+        
         conditions = [User.email.ilike(like)]
         if hasattr(User, "firstname"):
             conditions.append(getattr(User, "firstname").ilike(like))
@@ -82,7 +79,6 @@ def get_results(
                     "lastname": getattr(u, "lastname", "") or "",
                     "role": getattr(u, "role", "") or "",
                     "organizationId": getattr(u, "organization_id", "") or "",
-                    # flags utili UI (simili a Go)
                     "admin": getattr(u, "role", None) in ("admin", "org_admin", "super_admin"),
                     "spaceAdmin": getattr(u, "role", None) in ("admin", "org_admin", "super_admin"),
                     "superAdmin": getattr(u, "role", None) == "super_admin",
@@ -91,7 +87,7 @@ def get_results(
 
     # ---- GROUPS ----
     if includeGroups == "1":
-        # nel Go: GetGroupRepository().GetByKeyword(org, keyword)
+        
         q = db.query(Group).filter(Group.organization_id == current_user.organization_id)
         if keyword and hasattr(Group, "name"):
             q = q.filter(getattr(Group, "name").ilike(like))
@@ -107,7 +103,7 @@ def get_results(
 
     # ---- LOCATIONS ----
     if includeLocations == "1":
-        # nel Go: GetLocationRepository().GetByKeyword(org, keyword)
+        
         q = db.query(Location).filter(Location.organization_id == current_user.organization_id)
         if keyword and hasattr(Location, "name"):
             q = q.filter(getattr(Location, "name").ilike(like))
@@ -125,10 +121,10 @@ def get_results(
 
     # ---- SPACES ----
     if includeSpaces == "1":
-        # nel Go: GetSpaceRepository().GetByKeyword(org, keyword)
+        
         q = db.query(Space).filter(Space.organization_id == current_user.organization_id)
 
-        # tipicamente uno space ha name + (forse) code/label
+        
         conditions = []
         if hasattr(Space, "name"):
             conditions.append(getattr(Space, "name").ilike(like))

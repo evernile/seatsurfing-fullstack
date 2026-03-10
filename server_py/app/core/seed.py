@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models import Organization, User
 
-# SETTINGS (porting Go settings-repository)
+# SETTINGS 
 from app.repositories.settings_repository import get_settings_repository
 
 USER_ROLE_USER = 0
@@ -35,7 +35,7 @@ def seed_db(db: Session) -> None:
     - crea/allinea admin user
     - crea tabella settings (se manca) + inserisce default settings per org
     """
-    # HARD GUARD: su DB Go reale non deve partire.
+    # HARD GUARD
     if os.getenv("SEED_ENABLED", "0") != "1":
         return
 
@@ -52,7 +52,6 @@ def seed_db(db: Session) -> None:
         org = Organization(
             id=org_id,
             name=org_name,
-            # campi Go-like (default sensati)
             contact_firstname="",
             contact_lastname="",
             contact_email="",
@@ -70,21 +69,21 @@ def seed_db(db: Session) -> None:
         db.commit()
         db.refresh(org)
     else:
-        # se vuoi: allinea il nome se cambia env
+        
         if (org.name or "") != org_name:
             org.name = org_name
             db.commit()
             db.refresh(org)
 
     # 1b) Settings: ensure table + init default for org
-    # (va fatto DOPO avere org.id)
+   
     try:
         repo = get_settings_repository()
         repo.ensure_table(db)
         repo.init_default_settings_for_org(db, str(org.id))
         db.commit()
     except Exception:
-        # Non bloccare l'app se i settings falliscono in seed (puoi anche fare raise)
+        
         db.rollback()
 
     # 2) Admin user (solo se non esiste)
@@ -102,14 +101,14 @@ def seed_db(db: Session) -> None:
         db.commit()
         return
 
-    # 3) Allinea org e role se esiste
+    
     changed = False
 
     if user.organization_id != org.id:
         user.organization_id = org.id
         changed = True
 
-    # role in DB potrebbe essere int o stringa: qui forziamo a int 1
+    
     try:
         current_role = int(user.role or 0)
     except Exception:

@@ -18,8 +18,7 @@ repo = BookingRepository()
 spaces_repo = SpaceRepository()
 group_repo = GroupRepository()
 
-# NB: allinea questi ruoli al tuo sistema reale.
-# In altri file usi "admin". Qui avevi "org_admin/super_admin".
+
 ADMIN_ROLES = {"org_admin", "super_admin", "admin"}
 
 
@@ -47,20 +46,20 @@ def create_booking(
 
     space_public_id = str(space.public_id)
 
-    # Gruppi utente (uuid string)
+   
     user_group_ids = set(group_repo.get_user_group_ids(db, str(current_user.public_id)) or [])
 
-    # Allowed bookers: se configurato, devi appartenere almeno a un gruppo allowed (admin bypass)
+    
     allowed_group_ids = set(spaces_repo.get_allowed_bookers_group_ids(db, space_public_id))
     if allowed_group_ids and not _is_admin(current_user):
         if not allowed_group_ids.intersection(user_group_ids):
             raise HTTPException(status_code=403, detail="User not allowed to book this space")
 
-    # Overlap (pending + approved bloccano)
+    
     if repo.overlaps(db, current_user.organization_id, payload.space_id, payload.start_at, payload.end_at):
         raise HTTPException(status_code=409, detail="Time slot not available")
 
-    # Approvers -> se lo spazio ha approvers allora status=pending (salvo admin o approver)
+    
     approver_group_ids = set(spaces_repo.get_approver_group_ids(db, space_public_id))
 
     needs_approval = bool(approver_group_ids)
@@ -74,8 +73,8 @@ def create_booking(
     return repo.create(
         db=db,
         organization_id=current_user.organization_id,
-        user_id=current_user.id,     # int
-        space_id=payload.space_id,   # int
+        user_id=current_user.id,     
+        space_id=payload.space_id,  
         start_at=payload.start_at,
         end_at=payload.end_at,
         status=booking_status,
@@ -161,7 +160,7 @@ def approve_booking(
     if booking.status != "pending":
         raise HTTPException(status_code=400, detail="Booking is not pending")
 
-    # autorizzazione: admin oppure approver del space
+    
     space = booking.space
     approver_groups = set(spaces_repo.get_approver_group_ids(db, str(space.public_id)))
 
@@ -202,7 +201,7 @@ def reject_booking(
         if approver_groups and not approver_groups.intersection(user_group_ids):
             raise HTTPException(status_code=403, detail="Not an approver")
 
-    # rifiuto = non deve più bloccare lo slot
+    
     booking.status = "rejected"
     booking.approved_by = current_user.public_id
     booking.approved_at = datetime.utcnow()

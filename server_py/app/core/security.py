@@ -30,11 +30,11 @@ def get_current_user(
 ) -> User:
     token = None
 
-    # 1) Authorization: Bearer <token>
+    
     if credentials:
         token = credentials.credentials
 
-    # 2) fallback cookie (se FE lo usa)
+    
     if not token:
         token = request.cookies.get("accessToken")
 

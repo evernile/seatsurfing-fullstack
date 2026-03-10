@@ -118,13 +118,13 @@ def get_availability(
     if not can_access_org(current_user, loc.organization_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # default enter/leave
+    
     if enter is None or leave is None:
         now = datetime.now(timezone.utc)
         enter = now - timedelta(minutes=1)
         leave = now + timedelta(minutes=1)
 
-    # attributes: per ora validiamo solo JSON
+   
     if attributes:
         try:
             json.loads(attributes)
@@ -137,10 +137,10 @@ def get_availability(
     approvers = spaces_repo.get_all_approvers_for_space_list(db, space_ids)
     allowed = spaces_repo.get_all_allowed_bookers_for_space_list(db, space_ids)
 
-    # gruppi dell'utente (mi aspetto list[str] -> set[str])
+   
     user_group_ids = set(group_repo.get_user_group_ids(db, str(current_user.public_id)) or [])
 
-    # indicizzazione: space_id -> set[group_id]
+    
     approver_groups_by_space: dict[str, set[str]] = {}
     for a in approvers:
         approver_groups_by_space.setdefault(a.space_id, set()).add(a.group_id)
@@ -188,8 +188,7 @@ def get_availability(
             bookings=[],
             allowed=is_allowed(sid),
             approvalRequired=approval_required(sid),
-            # Se nel tuo schema esiste, scommenta:
-            # canApprove=user_is_approver(sid),
+            
         )
 
         for b in item.bookings:
@@ -295,7 +294,7 @@ def update_space(
 
     spaces_repo.update(db, sp)
 
-    # NB: come avevi già scritto: approvers/allowed li gestisci con bulk (diff)
+    
     return {"status": "updated"}
 
 

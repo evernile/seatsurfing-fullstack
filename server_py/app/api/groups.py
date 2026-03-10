@@ -17,7 +17,7 @@ def can_admin_org(user: User, org_id: str) -> bool:
     return can_access_org(user, org_id) and user.role == "admin"
 
 def can_space_admin_org(user: User, org_id: str) -> bool:
-    return can_access_org(user, org_id) and user.role == "admin"  # se hai ruolo "space_admin" cambialo qui
+    return can_access_org(user, org_id) and user.role == "admin"  
 
 @router.get("/")
 def get_all(
@@ -120,7 +120,7 @@ def add_members(
     if not can_admin_org(current_user, g.organization_id):
         raise HTTPException(status_code=403, detail="Forbidden")
 
-    # valida UUID
+    
     for m in members:
         try:
             uuid.UUID(m)

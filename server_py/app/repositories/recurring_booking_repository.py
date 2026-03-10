@@ -1,5 +1,3 @@
-# app/repositories/recurring_booking_repository.py
-
 from __future__ import annotations
 
 import json
@@ -10,7 +8,7 @@ from typing import Any, Optional, Union, List
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from app.models import Booking, RecurringBooking  # devono esistere come SQLAlchemy models
+from app.models import Booking, RecurringBooking  
 from app.repositories.space_repository import SpaceRepository
 
 
@@ -31,7 +29,7 @@ class CadenceDailyDetails:
 @dataclass
 class CadenceWeeklyDetails:
     cycle: int
-    weekdays: List[int]  # Go time.Weekday: Sunday=0 ... Saturday=6
+    weekdays: List[int]  
 
 
 def _null_uuid(value: str) -> Optional[str]:
@@ -55,7 +53,7 @@ def _add_days(dt: datetime, days: int) -> datetime:
 
 
 # -------------------------
-# Repository (Go-like)
+# Repository 
 # -------------------------
 
 class RecurringBookingRepository:
@@ -63,7 +61,7 @@ class RecurringBookingRepository:
         self._space_repo = SpaceRepository()
 
     def ensure_table(self, db: Session) -> None:
-        # CREATE TABLE IF NOT EXISTS recurring_bookings (...)
+        
         db.execute(
             text(
                 "CREATE TABLE IF NOT EXISTS recurring_bookings ("
@@ -88,7 +86,7 @@ class RecurringBookingRepository:
         db.commit()
 
     def run_schema_upgrade(self, cur_version: int, target_version: int) -> None:
-        # Nothing to do for now (come Go)
+        
         return
 
     # -------------------------
@@ -96,7 +94,7 @@ class RecurringBookingRepository:
     # -------------------------
 
     def create(self, db: Session, e: RecurringBooking) -> RecurringBooking:
-        # In Go: json.Marshal(&e.Details)
+        
         details_json = json.dumps(e.details) if getattr(e, "details", None) is not None else None
 
         # ORM insert
@@ -114,13 +112,11 @@ class RecurringBookingRepository:
         raw_details = getattr(e, "details", None)
         cadence = int(getattr(e, "cadence", 0) or 0)
 
-        # In Go details è []byte; qui è string
+        
         details_bytes = (raw_details or "").encode("utf-8") if raw_details is not None else b""
         parsed = self._get_cadence_details(cadence, details_bytes)
 
-        # Per mantenere "Details interface{}" come nel Go:
-        # - lasciamo e.details_raw nel campo "details" (string)
-        # - aggiungiamo e.details_obj come attributo runtime (non DB)
+        
         setattr(e, "details_obj", parsed)
         return e
 
