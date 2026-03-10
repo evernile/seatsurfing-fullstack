@@ -1,0 +1,29 @@
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: seatsurfing_user
+      POSTGRES_PASSWORD: Seatsurfing!1
+      POSTGRES_DB: seatsurfing_dev
+    ports:
+      - "5433:5432"
+    volumes:
+      - seatsurfing_pg:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: server_py/Dockerfile
+    environment:
+      DATABASE_URL: postgresql+psycopg2://seatsurfing_user:Seatsurfing!1@db:5432/seatsurfing_dev
+      SEED_ORG_ID: seatsurfing
+      SEED_ORG_NAME: Seatsurfing
+      SEED_ADMIN_EMAIL: admin@seatsurfing.local
+      SEED_ADMIN_PASSWORD: 12345678
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+volumes:
+  seatsurfing_pg:

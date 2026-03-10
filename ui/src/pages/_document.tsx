@@ -27,7 +27,7 @@ class Doc extends Document<Props> {
       "'strict-dynamic'",
     ]);
     if (process.env.NODE_ENV.toLowerCase() === "development") {
-      csp.set("connect-src", ["'self'", "http://localhost:8080"]);
+      csp.set("connect-src", ["'self'", "http://localhost:8000"]);
       csp.set(
         "script-src",
         Object.assign(

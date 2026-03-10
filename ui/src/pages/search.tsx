@@ -295,6 +295,9 @@ class Search extends React.Component<Props, State> {
             state.prefWorkdayStart = 0;
             state.prefWorkdayEnd = 23;
           }
+          if (!Array.isArray(state.prefWorkdays)) {
+            state.prefWorkdays = [];
+          }
           state.recurrence = {
             ...self.state.recurrence,
             weekdays: state.prefWorkdays,
@@ -1554,8 +1557,11 @@ class Search extends React.Component<Props, State> {
 
   renderWeekdayButtons = () => {
     const weekdays = ["S", "M", "T", "W", "T", "F", "S"];
+    const selectedWeekdays = Array.isArray(this.state.recurrence.weekdays)
+      ? this.state.recurrence.weekdays
+      : [];
     return weekdays.map((day, index) => {
-      const isActive = this.state.recurrence.weekdays.includes(index);
+      const isActive = selectedWeekdays.includes(index);
       return (
         <Button
           key={index}
@@ -1564,8 +1570,8 @@ class Search extends React.Component<Props, State> {
           size="sm"
           onClick={() => {
             const newWorkdays = isActive
-              ? this.state.recurrence.weekdays.filter((d) => d !== index)
-              : [...this.state.recurrence.weekdays, index];
+              ? selectedWeekdays.filter((d) => d !== index)
+              : [...selectedWeekdays, index];
             this.setState(
               {
                 recurrence: { ...this.state.recurrence, weekdays: newWorkdays },

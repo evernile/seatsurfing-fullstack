@@ -3,3 +3,12 @@
 docker-readme-modified.md
 .vscode/
 node_modules/
+
+# Python caches and bytecode
+__pycache__/
+*.py[cod]
+
+# Local environment files
+.env
+.env.*
+server_py/.env

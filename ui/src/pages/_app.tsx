@@ -30,6 +30,9 @@ interface Props extends AppProps {
 }
 
 class App extends React.Component<Props, State> {
+  initTimer: ReturnType<typeof setTimeout> | null = null;
+  isMountedFlag: boolean = false;
+
   constructor(props: Props) {
     super(props);
     this.state = {
@@ -38,14 +41,28 @@ class App extends React.Component<Props, State> {
     if (typeof window !== "undefined") {
       if (process.env.NODE_ENV.toLowerCase() === "development") {
         Ajax.URL =
-          "http://" + window.location.host.split(":").shift() + ":8080";
+          "http://" + window.location.host.split(":").shift() + ":8000";
       }
     }
-    setTimeout(() => {
+  }
+
+  componentDidMount() {
+    this.isMountedFlag = true;
+    this.initTimer = setTimeout(() => {
       RuntimeConfig.verifyToken(() => {
-        this.setState({ isLoading: false });
+        if (this.isMountedFlag) {
+          this.setState({ isLoading: false });
+        }
       });
     }, 10);
+  }
+
+  componentWillUnmount() {
+    this.isMountedFlag = false;
+    if (this.initTimer) {
+      clearTimeout(this.initTimer);
+      this.initTimer = null;
+    }
   }
 
   render() {
