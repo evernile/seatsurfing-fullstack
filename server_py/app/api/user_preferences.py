@@ -24,7 +24,7 @@ except Exception:
 router = APIRouter(prefix="/userpreferences", tags=["ui-compat"])
 
 
-# ---------------- Schemas ----------------
+# Schemas 
 
 class ListCaldavCalendarsRequest(BaseModel):
     url: AnyUrl = Field(..., alias="url")
@@ -46,7 +46,7 @@ class GetSettingsResponse(BaseModel):
     value: str
 
 
-# ---------------- "Crypto" compat ----------------
+# "Crypto" compat 
 
 def _can_crypt() -> bool:
     return bool(os.getenv("CRYPT_KEY"))
@@ -70,8 +70,7 @@ def _decrypt_string(s: str) -> str:
     return s
 
 
-# ---------------- Preference definitions ----------------
-# SettingType enum
+# Preference definitions 
 SETTING_TYPE_STRING = 1
 SETTING_TYPE_ENCRYPTED_STRING = 2
 SETTING_TYPE_BOOL = 3
@@ -97,8 +96,6 @@ PREF_MAIL_NOTIFICATIONS = "mailNotifications"
 PREF_APPROVAL_NOTIFICATIONS = "approvalNotifications"
 PREF_24H_TIME = "hourTime24"
 PREF_DATE_FORMAT = "dateFormat"
-
-# Enter time allowed values
 PREF_ENTER_TIME_NOW = 0
 PREF_ENTER_TIME_NEXT_DAY = 1
 PREF_ENTER_TIME_NEXT_WORKDAY = 2
@@ -182,7 +179,7 @@ def _is_valid_pref_type(name: str, value: str) -> bool:
             return False
 
     if t == SETTING_TYPE_INT_ARRAY:
-        # comma separated ints
+        
         if value.strip() == "":
             return True
         tokens = value.split(",")
@@ -198,7 +195,7 @@ def _is_valid_pref_type(name: str, value: str) -> bool:
 
 
 def _is_valid_pref_value(name: str, value: str) -> bool:
-    # Replica isValidPreferenceValue del Go
+    
     if name == PREF_ENTER_TIME:
         try:
             i = int(value)
@@ -232,8 +229,6 @@ def _is_valid_pref_value(name: str, value: str) -> bool:
 
     return True
 
-
-# ---------------- Persistence layer ----------------
 
 _IN_MEMORY_PREFS: dict[tuple[int, str], str] = {}
 
@@ -293,8 +288,6 @@ def _do_set_one(db: Session, user_id: int, name: str, value: str) -> None:
             raise HTTPException(status_code=500, detail="Crypt key missing")
     _repo_set(db, user_id, name, value)
 
-
-# ---------------- Routes ----------------
 
 @router.post("/caldav/listCalendars", response_model=list[ListCaldavCalendarsResponse])
 def caldav_list_calendars(

@@ -1,5 +1,3 @@
-# app/repositories/user_preferences_repository.py
-
 from __future__ import annotations
 
 import threading
@@ -9,8 +7,6 @@ from typing import List, Optional
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-
-# ---- Entities (1:1) ----
 
 @dataclass
 class UserPreference:
@@ -22,10 +18,9 @@ class UserPreference:
 @dataclass
 class PreferenceName:
     Name: str
-    Type: int  # SettingType (from Go)
+    Type: int  
 
 
-# ---- Preference "enum" (1:1) ----
 # NOTE: Type values depend on your SettingType mapping in Python.
 # We keep them as ints and DO NOT change behavior here.
 
@@ -48,8 +43,6 @@ PreferenceMailNotifications = PreferenceName(Name="mail_notifications", Type=0)
 PreferenceDateFormat = PreferenceName(Name="date_format", Type=0)
 PreferenceApprovalNotifications = PreferenceName(Name="approval_notifications", Type=0)
 Preference24HourTime = PreferenceName(Name="use_24_hour_time", Type=0)
-
-# ---- Values (1:1) ----
 PreferenceEnterTimeNow: int = 1
 PreferenceEnterTimeNextDay: int = 2
 PreferenceEnterTimeNextWorkday: int = 3
@@ -73,7 +66,7 @@ class UserPreferencesRepository:
         db.commit()
 
     def run_schema_upgrade(self, cur_version: int, target_version: int) -> None:
-        # Go: nothing yet
+        
         return
 
     def set(self, db: Session, user_id: str, name: str, value: str) -> None:
@@ -97,7 +90,7 @@ class UserPreferencesRepository:
         ).fetchone()
 
         if not row:
-            # Go returns error; in Python we raise to keep behavior strict
+            
             raise KeyError(f"preference not found: user_id={user_id} name={name}")
 
         return str(row[0])
@@ -106,9 +99,7 @@ class UserPreferencesRepository:
         res = self.get(db, user_id, name)
         return int(res)
 
-    # Go had GetIntArray commented out -> we keep it commented-out equivalent
-    # def get_int_array(...): pass
-
+    
     def get_bool(self, db: Session, user_id: str, name: str) -> bool:
         res = self.get(db, user_id, name)
         return res == "1"

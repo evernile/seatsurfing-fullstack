@@ -18,20 +18,12 @@ from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
-# -------------------------
-# ORGANIZATIONS
-# -------------------------
-
 class Organization(Base):
     __tablename__ = "organizations"
 
-    # Go: id uuid DEFAULT uuid_generate_v4()
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
-
-    # Go: name VARCHAR NOT NULL
     name = Column(String, nullable=False)
 
-    # Go schema upgrades (OrganizationRepository.RunSchemaUpgrade)
     contact_firstname = Column(String, nullable=True)
     contact_lastname = Column(String, nullable=True)
     contact_email = Column(String, nullable=True)
@@ -47,12 +39,9 @@ class Organization(Base):
     vat_id = Column(String, nullable=False, default="")
     company = Column(String, nullable=False, default="")
 
-    # relationships
     domains = relationship("OrganizationDomain", back_populates="organization")
-
     users = relationship("User", back_populates="organization")
     locations = relationship("Location", back_populates="organization")
-    bookings = relationship("Booking", back_populates="organization")
 
 
 class OrganizationDomain(Base):
@@ -69,7 +58,7 @@ class OrganizationDomain(Base):
     """
     __tablename__ = "organizations_domains"
 
-    # In Go la PK è domain
+    
     domain = Column(String, primary_key=True)
 
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=False, index=True)
@@ -84,10 +73,6 @@ class OrganizationDomain(Base):
     organization = relationship("Organization", back_populates="domains")
 
 
-# -------------------------
-# USERS / GROUPS
-# -------------------------
-
 class User(Base):
     __tablename__ = "users"
 
@@ -97,7 +82,7 @@ class User(Base):
     firstname = Column(String, nullable=True)
     lastname = Column(String, nullable=True)
 
-    # ⚠️ colonna reale DB: "password" (non "hashed_password")
+    
     hashed_password = Column("password", String, nullable=True)
 
     organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
@@ -143,7 +128,6 @@ class AuthProvider(Base):
     userinfo_url = Column(String, nullable=False)
     userinfo_email_field = Column(String, nullable=False)
 
-    # added in schema upgrades (Go)
     userinfo_firstname_field = Column(String, nullable=False, default="")
     userinfo_lastname_field = Column(String, nullable=False, default="")
 
@@ -169,8 +153,6 @@ class AuthState(Base):
     payload = Column(String, nullable=True)
 
 
-# --- Refresh Tokens ----------------------------------------------------------
-
 class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
@@ -182,8 +164,6 @@ class RefreshToken(Base):
 
     user = relationship("User")
 
-
-# --- Mail Logs ---------------------------------------------------------------
 
 class MailLog(Base):
     __tablename__ = "mail_logs"
@@ -198,8 +178,6 @@ class MailLog(Base):
 
     organization = relationship("Organization")
 
-
-# --- Debug Time Issues -------------------------------------------------------
 
 class DebugTimeIssueItem(Base):
     __tablename__ = "debug_time_issues"
@@ -233,12 +211,6 @@ class UserGroup(Base):
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
 
 
-# -------------------------
-# LOCATIONS / SPACES
-# (non tocco qui map tables ecc. perché state già lavorando su questi file,
-# ma almeno organization_id/location_id/space_id devono essere UUID coerenti)
-# -------------------------
-
 class Location(Base):
     __tablename__ = "locations"
 
@@ -248,7 +220,7 @@ class Location(Base):
     name = Column(String, nullable=False)
 
     description = Column(String, nullable=True)
-    #timezone = Column(String, nullable=True)#
+    
     enabled = Column(Boolean, nullable=False, default=True)
 
     organization = relationship("Organization", back_populates="locations")
@@ -279,7 +251,6 @@ class Space(Base):
 class SpaceApprover(Base):
     __tablename__ = "spaces_approvers"
 
-    # Go: space_id uuid (spaces.id) + group_id uuid, PK(space_id, group_id)
     space_id = Column(UUID(as_uuid=True), ForeignKey("spaces.id"), primary_key=True)
     group_id = Column(UUID(as_uuid=True), primary_key=True)
 
@@ -291,22 +262,13 @@ class SpaceAllowedBooker(Base):
     group_id = Column(UUID(as_uuid=True), primary_key=True)
 
 
-# -------------------------
-# BOOKINGS
-# -------------------------
-
 class Booking(Base):
     __tablename__ = "bookings"
 
-    # Go: id uuid DEFAULT uuid_generate_v4()
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, index=True)
 
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, index=True)
     space_id = Column(UUID(as_uuid=True), ForeignKey("spaces.id"), nullable=False, index=True)
-
-    # join “di comodo” per org via locations->spaces ecc in repo,
-    # ma se nel DB Go c’è organization_id su bookings, lo mappiamo (in molte parti Go c’è)
-    organization_id = Column(UUID(as_uuid=True), ForeignKey("organizations.id"), nullable=True, index=True)
 
     enter_time = Column(DateTime, nullable=False, index=True)
     leave_time = Column(DateTime, nullable=False, index=True)
@@ -321,7 +283,6 @@ class Booking(Base):
 
     user = relationship("User", back_populates="bookings")
     space = relationship("Space", back_populates="bookings")
-    organization = relationship("Organization", back_populates="bookings")
 
 class RecurringBooking(Base):
     __tablename__ = "recurring_bookings"
@@ -342,6 +303,5 @@ class RecurringBooking(Base):
 
     end_date = Column(DateTime, nullable=False)
 
-    # relationships
     user = relationship("User")
     space = relationship("Space")

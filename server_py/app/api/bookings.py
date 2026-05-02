@@ -12,6 +12,9 @@ from app.repositories.booking_repository import BookingRepository
 from app.repositories.space_repository import SpaceRepository
 from app.repositories.group_repository import GroupRepository
 
+from app.services.mail_service import send_calendar_invite, build_booking_email_html, MAIL_FROM, MAIL_FROM_NAME
+from app.services.calendar_invite_service import build_booking_invite_ics
+
 router = APIRouter(prefix="/bookings", tags=["bookings"])
 
 repo = BookingRepository()
@@ -24,6 +27,73 @@ ADMIN_ROLES = {"org_admin", "super_admin", "admin"}
 
 def _is_admin(user: User) -> bool:
     return user.role in ADMIN_ROLES
+
+
+def _send_booking_confirmation_email(booking, current_user: User, space, payload: BookingCreate) -> None:
+    """
+    Invia email HTML + allegato .ics dopo la creazione della prenotazione.
+    La chiamata è protetta da try/except per non bloccare la prenotazione
+    se l'invio email fallisce.
+    """
+    try:
+        to_email = current_user.email
+
+        if not to_email or to_email.endswith(".local"):
+            return
+
+        location_name = "Sede selezionata"
+        if getattr(space, "location", None):
+            location_name = getattr(space.location, "name", location_name)
+
+        space_name = getattr(space, "name", "Spazio prenotato")
+        subject_text = getattr(payload, "subject", None) or "Prenotazione via chat"
+
+        start_text = payload.start_at.strftime("%d/%m/%Y %H:%M")
+        end_text = payload.end_at.strftime("%d/%m/%Y %H:%M")
+
+        email_subject = f"Prenotazione confermata - {space_name}"
+
+        body_text = (
+            "La tua prenotazione è stata registrata.\n\n"
+            f"Sede: {location_name}\n"
+            f"Spazio: {space_name}\n"
+            f"Inizio: {start_text}\n"
+            f"Fine: {end_text}\n"
+            f"Oggetto: {subject_text}\n\n"
+            "Apri l'invito allegato per aggiungerlo al calendario."
+        )
+
+        body_html = build_booking_email_html(
+            location_name=location_name,
+            space_name=space_name,
+            start_text=start_text,
+            end_text=end_text,
+            subject_text=subject_text,
+        )
+
+        ics_content = build_booking_invite_ics(
+            booking_id=str(getattr(booking, "id", "")),
+            start_dt=payload.start_at,
+            end_dt=payload.end_at,
+            attendee_email=to_email,
+            summary=f"SeatSurfing - {space_name}",
+            description=f"Prenotazione SeatSurfing: {space_name}",
+            location=location_name,
+            organizer_email=MAIL_FROM,
+            organizer_name=MAIL_FROM_NAME,
+        )
+
+        send_calendar_invite(
+            to_email=to_email,
+            subject=email_subject,
+            body_text=body_text,
+            body_html=body_html,
+            ics_content=ics_content,
+            filename=f"booking-{getattr(booking, 'id', 'seatsurfing')}.ics",
+        )
+
+    except Exception as e:
+        print(f"[MAIL] Errore invio email prenotazione: {e}")
 
 
 @router.post("", response_model=BookingOut, status_code=status.HTTP_201_CREATED)
@@ -70,7 +140,7 @@ def create_booking(
     else:
         booking_status = "approved"
 
-    return repo.create(
+    booking = repo.create(
         db=db,
         organization_id=current_user.organization_id,
         user_id=current_user.id,     
@@ -79,6 +149,15 @@ def create_booking(
         end_at=payload.end_at,
         status=booking_status,
     )
+
+    _send_booking_confirmation_email(
+        booking=booking,
+        current_user=current_user,
+        space=space,
+        payload=payload,
+    )
+
+    return booking
 
 
 @router.get("", response_model=list[BookingOut])

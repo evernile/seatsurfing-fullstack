@@ -29,13 +29,11 @@ class OrgSetting:
     value: str
 
 
-# --- Consts (1:1 col Go) ---
 SETTING_SUBJECT_DEFAULT_DISABLED = 1
 SETTING_SUBJECT_DEFAULT_OPTIONAL = 2
 SETTING_SUBJECT_DEFAULT_REQUIRED = 3
 
 
-# --- SettingName vars (1:1 col Go) ---
 SETTING_INSTALL_ID = SettingName(name="install_id", type=SettingType.string)
 SETTING_DATABASE_VERSION = SettingName(name="db_version", type=SettingType.int)
 SETTING_ALLOW_ANY_USER = SettingName(name="allow_any_user", type=SettingType.bool)
@@ -79,7 +77,7 @@ class SettingsRepository:
     CACHE_TTL_SECONDS = 60 * 5
 
     def ensure_table(self, db: Session) -> None:
-        # 1:1 con CREATE TABLE IF NOT EXISTS del Go
+        
         db.execute(
             text(
                 """
@@ -94,7 +92,7 @@ class SettingsRepository:
         )
         db.commit()
 
-    # --- schema upgrade (1:1) ---
+    
     def run_schema_upgrade(self, db: Session, cur_version: int, target_version: int, default_user_limit: int) -> None:
         """
         Go:
@@ -123,7 +121,7 @@ class SettingsRepository:
             self.set(db, org_id_str, SETTING_FEATURE_CUSTOM_DOMAINS.name, "1")
             self.delete(db, org_id_str, "subscription_max_users")
 
-    # --- CRUD ---
+    
     def set(self, db: Session, organization_id: str, name: str, value: str) -> None:
         db.execute(
             text(
@@ -147,7 +145,7 @@ class SettingsRepository:
         get_cache().delete(f"{organization_id}_{name}")
 
     def get(self, db: Session, organization_id: str, name: str) -> str:
-        # cache first
+        
         cache_key = f"{organization_id}_{name}"
         try:
             return get_cache().get(cache_key).decode("utf-8")
@@ -160,7 +158,7 @@ class SettingsRepository:
         ).fetchone()
 
         if row is None:
-            # nel Go tornerebbe err da Scan; qui facciamo una KeyError “tipo not found”
+            
             raise KeyError(f"setting not found: org={organization_id} name={name}")
 
         res = str(row[0])
@@ -174,7 +172,7 @@ class SettingsRepository:
         ).fetchall()
         return [str(r[0]) for r in rows]
 
-    # alias come nel Go
+    
     def get_org_ids_by_value(self, db: Session, name: str, value: str) -> List[str]:
         rows = db.execute(
             text(
@@ -189,7 +187,7 @@ class SettingsRepository:
         ).fetchall()
         return [str(r[0]) for r in rows]
 
-    # --- Global ---
+    
     def set_global(self, db: Session, name: str, value: str) -> None:
         self.set(db, self.get_null_uuid(), name, value)
 
@@ -202,14 +200,14 @@ class SettingsRepository:
     def get_global_bool(self, db: Session, name: str) -> bool:
         return self.get(db, self.get_null_uuid(), name) == "1"
 
-    # --- typed getters ---
+    
     def get_int(self, db: Session, organization_id: str, name: str) -> int:
         return int(self.get(db, organization_id, name))
 
     def get_bool(self, db: Session, organization_id: str, name: str) -> bool:
         return self.get(db, organization_id, name) == "1"
 
-    # --- lists ---
+    
     def get_all(self, db: Session, organization_id: str) -> List[OrgSetting]:
         rows = db.execute(
             text(
@@ -230,7 +228,7 @@ class SettingsRepository:
             get_cache().set(f"{organization_id}_{s.name}", s.value.encode("utf-8"), self.CACHE_TTL_SECONDS)
         return result
 
-    # --- defaults ---
+    
     def init_default_settings_for_org(self, db: Session, organization_id: str) -> None:
         """
         Porting 1:1 della INSERT multi-values del Go con ON CONFLICT DO NOTHING.
@@ -289,7 +287,6 @@ class SettingsRepository:
         return "00000000-0000-0000-0000-000000000000"
 
 
-# Singleton “tipo Go”
 _settings_repo_singleton: Optional[SettingsRepository] = None
 
 

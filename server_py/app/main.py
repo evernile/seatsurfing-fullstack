@@ -5,9 +5,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.auth import router as auth_router
 from app.api.user import router as user_router
 from app.api.organizations import router as organizations_router
-from app.api.spaces import router as spaces_router
+from app.api.spaces import router as spaces_router, compat_router as spaces_compat_router
 from app.api.bookings import router as bookings_router
-from app.api.locations import router as locations_router
+from app.api.locations import router as locations_router, compat_router as locations_compat_router
 from app.api.setting import router as setting_router
 from app.api.locations_ui import router as locations_ui_router
 from app.api.space_attributes_ui import router as space_attributes_ui_router
@@ -23,12 +23,13 @@ from app.api.user_preferences import router as user_preferences_router
 from app.api.settings_ui import router as settings_ui_router
 from app.api.groups_ui import router as groups_ui_router
 from app.api.auth_provider import router as auth_provider_router
+from app.api.calendar_feed import router as calendar_feed_router
+from app.api.chat import router as chat_router
 
 from app.core.database import SessionLocal
 from app.core.seed import seed_db
 
 app = FastAPI()
-
 
 app.add_middleware(
     CORSMiddleware,
@@ -43,14 +44,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 app.include_router(auth_router)
 app.include_router(user_router)
 app.include_router(users_ui_router)
 app.include_router(organizations_router)
 app.include_router(spaces_router)
+app.include_router(spaces_compat_router)
 app.include_router(bookings_router)
 app.include_router(locations_router)
+app.include_router(locations_compat_router)
 app.include_router(setting_router)
 app.include_router(locations_ui_router)
 app.include_router(space_attributes_ui_router)
@@ -65,12 +67,12 @@ app.include_router(user_preferences_router)
 app.include_router(settings_ui_router)
 app.include_router(groups_ui_router)
 app.include_router(auth_provider_router)
-
+app.include_router(calendar_feed_router)
+app.include_router(chat_router)
 
 
 @app.on_event("startup")
 def on_startup():
-    
     if os.getenv("SEED_ENABLED", "0") != "1":
         return
 
@@ -79,6 +81,7 @@ def on_startup():
         seed_db(db)
     finally:
         db.close()
+
 
 @app.get("/healthcheck")
 def healthcheck():

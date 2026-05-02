@@ -7,7 +7,7 @@ from app.models import RefreshToken, User
 
 
 class RefreshTokenRepository:
-    # NON creare tabelle qui. DB è quello originale.
+    
 
     def create(self, db: Session, e: RefreshToken) -> RefreshToken:
         db.add(e)

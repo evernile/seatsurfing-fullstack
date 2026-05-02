@@ -5,7 +5,7 @@ from app.models import Location, Space
 
 
 def create_sample_data(db: Session, org_id: str) -> None:
-    # Se esiste già la location “Sample Floor” per quell’org, non ricreare tutto
+    
     location = (
         db.query(Location)
         .filter(Location.organization_id == org_id, Location.name == "Sample Floor")
@@ -26,23 +26,22 @@ def create_sample_data(db: Session, org_id: str) -> None:
             max_concurrent_bookings=0,
         )
         db.add(location)
-        db.flush()  # così location.id è disponibile
+        db.flush()  
 
-        # Carica immagine
-        base_dir = pathlib.Path(__file__).resolve().parents[2]  # server_py/
+        base_dir = pathlib.Path(__file__).resolve().parents[2]  
         map_path = base_dir / "res" / "floorplan.jpg"
         if not map_path.exists():
             raise FileNotFoundError(f"floorplan.jpg non trovato in: {map_path}")
 
         location.map_data = map_path.read_bytes()
-        location.map_mimetype = "jpeg"  # come Go
-        location.map_width = 2047       # come Go (se vuoi essere identica)
+        location.map_mimetype = "jpeg"  
+        location.map_width = 2047       
         location.map_height = 802
 
         db.commit()
         db.refresh(location)
 
-    # Dati desk (17)
+    # dati desk
     spaces_data = [
         ("Conference 1", 990, 76, 204, 70),
         ("Desk 1", 755, 60, 120, 55),
@@ -63,7 +62,7 @@ def create_sample_data(db: Session, org_id: str) -> None:
         ("Desk 16", 1933, 626, 104, 52),
     ]
 
-    # Inserisci solo se non esiste già uno space con quel nome in quella location
+    
     for name, x, y, width, height in spaces_data:
         exists = (
             db.query(Space)

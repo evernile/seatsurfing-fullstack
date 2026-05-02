@@ -1,5 +1,3 @@
-# app/core/seed.py
-
 import os
 import uuid
 
@@ -8,7 +6,6 @@ from sqlalchemy.orm import Session
 from app.core.security import hash_password
 from app.models import Organization, User
 
-# SETTINGS 
 from app.repositories.settings_repository import get_settings_repository
 
 USER_ROLE_USER = 0
@@ -35,7 +32,7 @@ def seed_db(db: Session) -> None:
     - crea/allinea admin user
     - crea tabella settings (se manca) + inserisce default settings per org
     """
-    # HARD GUARD
+    
     if os.getenv("SEED_ENABLED", "0") != "1":
         return
 
@@ -46,7 +43,7 @@ def seed_db(db: Session) -> None:
 
     org_id = _uuid_from_env(org_id_raw)
 
-    # 1) Organization
+    # Organization
     org = db.query(Organization).filter(Organization.id == org_id).first()
     if not org:
         org = Organization(
@@ -75,7 +72,7 @@ def seed_db(db: Session) -> None:
             db.commit()
             db.refresh(org)
 
-    # 1b) Settings: ensure table + init default for org
+    # Settings: ensure table + init default for org
    
     try:
         repo = get_settings_repository()
@@ -86,7 +83,7 @@ def seed_db(db: Session) -> None:
         
         db.rollback()
 
-    # 2) Admin user (solo se non esiste)
+    # Admin user 
     user = db.query(User).filter(User.email == admin_email).first()
     if not user:
         user = User(

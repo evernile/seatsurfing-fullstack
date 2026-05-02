@@ -9,13 +9,13 @@ router = APIRouter(prefix="/db", tags=["db"])
 
 @router.get("/write-read")
 def write_read(db: Session = Depends(get_db)):
-    # WRITE
+    # write
     db.execute(
         text("INSERT INTO users (email) VALUES ('test@example.com') ON CONFLICT DO NOTHING")
     )
     db.commit()
 
-    # READ
+    # read
     result = db.execute(text("SELECT COUNT(*) FROM users"))
     count = result.scalar()
 

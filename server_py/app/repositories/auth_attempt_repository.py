@@ -31,7 +31,7 @@ class AuthAttemptRepository:
         Dipende da config: LoginProtectionSlidingWindowSeconds, LoginProtectionMaxFails, LoginProtectionBanMinutes.
         Se non ce l’hai ancora in Python config, metti default qui (poi li colleghi al tuo config).
         """
-        # --- DEFAULTS ---
+        # DEFAULTS
         sliding_window_seconds = 300
         max_fails = 5
         ban_minutes = 15

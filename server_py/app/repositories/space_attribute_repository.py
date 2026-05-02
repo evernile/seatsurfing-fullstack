@@ -11,9 +11,6 @@ from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 
-# --- Go: SettingType (server/api) ---
-# Nel Go è un int; qui lo modelliamo come IntEnum.
-# IMPORTANT: il default usato dal Go è SettingTypeString.
 class SettingType(IntEnum):
     SettingTypeString = 0
     SettingTypeInt = 1
@@ -56,7 +53,7 @@ class SpaceAttributeRepository:
         db.commit()
 
     def run_schema_upgrade(self, cur_version: int, target_version: int) -> None:
-        # Go: // nothing yet
+        
         return
 
     def create(self, db: Session, e: SpaceAttribute) -> SpaceAttribute:
@@ -149,21 +146,17 @@ class SpaceAttributeRepository:
         db.commit()
 
     def delete(self, db: Session, e: SpaceAttribute) -> None:
-        # Go:
-        # DELETE FROM space_attribute_values WHERE attribute_id = $1
+        
         db.execute(
             text("DELETE FROM space_attribute_values WHERE attribute_id = :attr_id"),
             {"attr_id": e.ID},
         )
-        # DELETE FROM space_attributes WHERE id = $1
         db.execute(
             text("DELETE FROM space_attributes WHERE id = :id"),
             {"id": e.ID},
         )
         db.commit()
 
-
-# --- singleton (Go: var + sync.Once) ---
 _space_attribute_repository: Optional[SpaceAttributeRepository] = None
 _space_attribute_lock = threading.Lock()
 

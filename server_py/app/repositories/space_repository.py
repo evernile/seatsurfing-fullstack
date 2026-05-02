@@ -3,10 +3,17 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
 
-from sqlalchemy import and_, or_, asc
+from sqlalchemy import and_, asc
 from sqlalchemy.orm import Session, joinedload
 
-from app.models import Space, Booking, User, Location, SpaceApprover, SpaceAllowedBooker
+from app.models import (
+    Space,
+    Booking,
+    User,
+    Location,
+    SpaceApprover,
+    SpaceAllowedBooker,
+)
 
 
 @dataclass
@@ -40,7 +47,6 @@ class SpaceRepository:
         db.refresh(e)
         return e
 
-    # ✅ Go: GetOne(id string) -> spaces.id
     def get_one(self, db: Session, space_id: str) -> Optional[Space]:
         try:
             sid = uuid.UUID(space_id)
@@ -54,7 +60,6 @@ class SpaceRepository:
             .first()
         )
 
-    # ✅ Go: GetAll(locationID string) -> location_id
     def get_all(self, db: Session, location_id: str) -> list[Space]:
         lid = uuid.UUID(location_id)
         return (
@@ -70,28 +75,44 @@ class SpaceRepository:
         db.refresh(e)
         return e
 
-    # ✅ Go: Delete elimina anche approvers/allowedbookers (space_id = spaces.id)
     def delete(self, db: Session, space: Space) -> None:
-        db.query(SpaceApprover).filter(SpaceApprover.space_id == space.id).delete(synchronize_session=False)
-        db.query(SpaceAllowedBooker).filter(SpaceAllowedBooker.space_id == space.id).delete(synchronize_session=False)
+        (
+            db.query(SpaceApprover)
+            .filter(SpaceApprover.space_id == space.id)
+            .delete(synchronize_session=False)
+        )
+        (
+            db.query(SpaceAllowedBooker)
+            .filter(SpaceAllowedBooker.space_id == space.id)
+            .delete(synchronize_session=False)
+        )
         db.delete(space)
         db.commit()
 
-    # ✅ Go: GetByKeyword(organizationID, keyword) join locations
     def get_by_keyword(self, db: Session, organization_id: str, keyword: str) -> list[Space]:
         kw = f"%{keyword.lower()}%"
+        org_uuid = uuid.UUID(organization_id)
+
         return (
             db.query(Space)
             .join(Location, Location.id == Space.location_id)
-            .filter(Location.organization_id == organization_id)
+            .filter(Location.organization_id == org_uuid)
             .filter(Space.name.ilike(kw))
             .order_by(asc(Space.name))
             .all()
         )
 
-    # ✅ Go: GetAllInTime(locationID, enter, leave)
-    def get_all_in_time(self, db: Session, location_id: str, enter: datetime, leave: datetime) -> list[SpaceAvailability]:
+    def get_all_in_time(
+        self,
+        db: Session,
+        location_id: str,
+        enter: datetime,
+        leave: datetime,
+    ) -> list[SpaceAvailability]:
         lid = uuid.UUID(location_id)
+
+        if enter > leave:
+            enter, leave = leave, enter
 
         spaces = (
             db.query(Space)
@@ -103,18 +124,15 @@ class SpaceRepository:
         res: list[SpaceAvailability] = []
 
         for sp in spaces:
-            # Go overlap logic (equivalente): booking overlaps [enter, leave]
             q = (
                 db.query(Booking, User)
                 .join(User, User.id == Booking.user_id)
                 .filter(Booking.space_id == sp.id)
             )
 
-            # Se nel DB hai is_active / status, tienili; altrimenti toglili.
             if hasattr(Booking, "is_active"):
-                q = q.filter(Booking.is_active == True)
+                q = q.filter(Booking.is_active.is_(True))
 
-            # Preferisci campi Go-like enter_time/leave_time se esistono
             if hasattr(Booking, "enter_time") and hasattr(Booking, "leave_time"):
                 q = q.filter(
                     and_(
@@ -123,7 +141,6 @@ class SpaceRepository:
                     )
                 ).order_by(asc(Booking.enter_time))
             else:
-                # fallback: start_at/end_at
                 q = q.filter(
                     and_(
                         Booking.start_at < leave,
@@ -135,14 +152,15 @@ class SpaceRepository:
 
             bookings: list[SpaceAvailabilityBookingEntry] = []
             for b, u in rows:
-                b_enter = getattr(b, "enter_time", None) or getattr(b, "start_at")
-                b_leave = getattr(b, "leave_time", None) or getattr(b, "end_at")
+                b_enter = getattr(b, "enter_time", None) or getattr(b, "start_at", None)
+                b_leave = getattr(b, "leave_time", None) or getattr(b, "end_at", None)
+
                 bookings.append(
                     SpaceAvailabilityBookingEntry(
-                        booking_id=str(b.id),  # ✅ Go: bookings.id
+                        booking_id=str(b.id),
                         recurring_id=str(getattr(b, "recurring_id", "") or ""),
-                        user_id=str(u.id),     # ✅ Go: users.id
-                        user_email=str(u.email),
+                        user_id=str(u.id),
+                        user_email=str(u.email or ""),
                         enter=b_enter,
                         leave=b_leave,
                         subject=str(getattr(b, "subject", "") or ""),
@@ -159,12 +177,12 @@ class SpaceRepository:
 
         return res
 
-    # ✅ Go: GetApproverGroupIDs(spaceID)
     def get_approver_group_ids(self, db: Session, space_id: str) -> list[str]:
         try:
             sid = uuid.UUID(space_id)
         except Exception:
             return []
+
         rows = (
             db.query(SpaceApprover.group_id)
             .filter(SpaceApprover.space_id == sid)
@@ -176,6 +194,7 @@ class SpaceRepository:
     def add_approvers(self, db: Session, space_id: str, group_ids: list[str]) -> None:
         if not group_ids:
             return
+
         sid = uuid.UUID(space_id)
         for gid in group_ids:
             db.merge(SpaceApprover(space_id=sid, group_id=uuid.UUID(gid)))
@@ -184,11 +203,16 @@ class SpaceRepository:
     def remove_approvers(self, db: Session, space_id: str, group_ids: list[str]) -> None:
         if not group_ids:
             return
+
         sid = uuid.UUID(space_id)
         gids = [uuid.UUID(g) for g in group_ids]
+
         (
             db.query(SpaceApprover)
-            .filter(SpaceApprover.space_id == sid, SpaceApprover.group_id.in_(gids))
+            .filter(
+                SpaceApprover.space_id == sid,
+                SpaceApprover.group_id.in_(gids),
+            )
             .delete(synchronize_session=False)
         )
         db.commit()
@@ -196,6 +220,7 @@ class SpaceRepository:
     def get_all_approvers_for_space_list(self, db: Session, space_ids: list[str]) -> list[SpaceGroup]:
         if not space_ids:
             return []
+
         sids = [uuid.UUID(s) for s in space_ids]
         rows = (
             db.query(SpaceApprover.space_id, SpaceApprover.group_id)
@@ -204,9 +229,12 @@ class SpaceRepository:
         )
         return [SpaceGroup(space_id=str(a), group_id=str(b)) for a, b in rows]
 
-    # ✅ Go: Allowed bookers mirror approvers
     def get_allowed_bookers_group_ids(self, db: Session, space_id: str) -> list[str]:
-        sid = uuid.UUID(space_id)
+        try:
+            sid = uuid.UUID(space_id)
+        except Exception:
+            return []
+
         rows = (
             db.query(SpaceAllowedBooker.group_id)
             .filter(SpaceAllowedBooker.space_id == sid)
@@ -218,6 +246,7 @@ class SpaceRepository:
     def add_allowed_bookers(self, db: Session, space_id: str, group_ids: list[str]) -> None:
         if not group_ids:
             return
+
         sid = uuid.UUID(space_id)
         for gid in group_ids:
             db.merge(SpaceAllowedBooker(space_id=sid, group_id=uuid.UUID(gid)))
@@ -226,11 +255,16 @@ class SpaceRepository:
     def remove_allowed_bookers(self, db: Session, space_id: str, group_ids: list[str]) -> None:
         if not group_ids:
             return
+
         sid = uuid.UUID(space_id)
         gids = [uuid.UUID(g) for g in group_ids]
+
         (
             db.query(SpaceAllowedBooker)
-            .filter(SpaceAllowedBooker.space_id == sid, SpaceAllowedBooker.group_id.in_(gids))
+            .filter(
+                SpaceAllowedBooker.space_id == sid,
+                SpaceAllowedBooker.group_id.in_(gids),
+            )
             .delete(synchronize_session=False)
         )
         db.commit()
@@ -238,6 +272,7 @@ class SpaceRepository:
     def get_all_allowed_bookers_for_space_list(self, db: Session, space_ids: list[str]) -> list[SpaceGroup]:
         if not space_ids:
             return []
+
         sids = [uuid.UUID(s) for s in space_ids]
         rows = (
             db.query(SpaceAllowedBooker.space_id, SpaceAllowedBooker.group_id)

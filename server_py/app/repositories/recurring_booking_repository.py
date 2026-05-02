@@ -12,10 +12,6 @@ from app.models import Booking, RecurringBooking
 from app.repositories.space_repository import SpaceRepository
 
 
-# -------------------------
-# Types (Go-like)
-# -------------------------
-
 class Cadence:
     CadenceDaily: int = 1
     CadenceWeekly: int = 2
@@ -33,8 +29,7 @@ class CadenceWeeklyDetails:
 
 
 def _null_uuid(value: str) -> Optional[str]:
-    # In Go: NullUUID(e.ID) -> tipo NullString/uuid nullable.
-    # In Python: usiamo None per "NULL" DB.
+    
     if not value:
         return None
     return value
@@ -52,9 +47,6 @@ def _add_days(dt: datetime, days: int) -> datetime:
     return dt + timedelta(days=int(days))
 
 
-# -------------------------
-# Repository 
-# -------------------------
 
 class RecurringBookingRepository:
     def __init__(self) -> None:
@@ -89,10 +81,7 @@ class RecurringBookingRepository:
         
         return
 
-    # -------------------------
-    # CRUD
-    # -------------------------
-
+    
     def create(self, db: Session, e: RecurringBooking) -> RecurringBooking:
         
         details_json = json.dumps(e.details) if getattr(e, "details", None) is not None else None
@@ -121,10 +110,10 @@ class RecurringBookingRepository:
         return e
 
     def delete(self, db: Session, e: RecurringBooking) -> None:
-        # enter, err := GetSpaceRepository().GetNowInSpaceTimezone(e.SpaceID)
+        
         enter = self._space_repo.get_now_in_space_timezone(db, str(e.space_id))
 
-        # DELETE FROM bookings WHERE recurring_id = $1 AND enter_time > $2
+        
         db.execute(
             text(
                 "DELETE FROM bookings "
@@ -133,39 +122,36 @@ class RecurringBookingRepository:
             {"rid": str(e.id), "enter_time": enter},
         )
 
-        # UPDATE bookings SET recurring_id = NULL WHERE recurring_id = $1
+        
         db.execute(
             text("UPDATE bookings SET recurring_id = NULL WHERE recurring_id = :rid"),
             {"rid": str(e.id)},
         )
 
-        # DELETE FROM recurring_bookings WHERE id = $1
+        
         db.query(RecurringBooking).filter(RecurringBooking.id == e.id).delete(
             synchronize_session=False
         )
         db.commit()
 
-    # -------------------------
-    # Booking generation (Go-like)
-    # -------------------------
-
+    
     def create_bookings(self, e: RecurringBooking) -> list[Booking]:
         res: list[Booking] = []
         cur: datetime = e.enter_time
 
         cadence = int(e.cadence)
 
-        # Recupera details (come Go: e.Details)
+        
         details_obj = getattr(e, "details_obj", None)
         if details_obj is None:
             raw_details = getattr(e, "details", None)
             details_bytes = (raw_details or "").encode("utf-8") if raw_details is not None else b""
             details_obj = self._get_cadence_details(cadence, details_bytes)
 
-        # for weekly cadence, ensure start is on a weekday
+        
         if cadence == Cadence.CadenceWeekly:
             if not isinstance(details_obj, CadenceWeeklyDetails):
-                # se arriva dict invece di dataclass (per sicurezza)
+                
                 details_obj = CadenceWeeklyDetails(
                     cycle=int(details_obj.get("cycle", 1)),
                     weekdays=list(details_obj.get("weekdays", [])),
@@ -217,13 +203,13 @@ class RecurringBookingRepository:
                     weekdays=list(details_obj.get("weekdays", [])),
                 )
 
-            weekdays = details_obj.weekdays  # Go weekday ints
+            weekdays = details_obj.weekdays  
             cur_wd = _go_weekday(current)
 
             try:
                 idx = weekdays.index(cur_wd)
             except ValueError:
-                # Se current non è un weekday previsto, vai al prossimo giorno valido
+                
                 tmp = current
                 for _ in range(14):  # safeguard
                     tmp = _add_days(tmp, 1)
@@ -248,7 +234,7 @@ class RecurringBookingRepository:
 
         if cadence == Cadence.CadenceWeekly:
             payload = json.loads(details.decode("utf-8") or "{}")
-            # weekdays devono essere Go-style ints (0..6)
+            
             weekdays = payload.get("weekdays", [])
             if weekdays is None:
                 weekdays = []
@@ -260,7 +246,7 @@ class RecurringBookingRepository:
         raise ValueError("unknown cadence type")
 
 
-# singleton helper (Go-like GetRecurringBookingRepository)
+
 _recurring_booking_repo: RecurringBookingRepository | None = None
 
 

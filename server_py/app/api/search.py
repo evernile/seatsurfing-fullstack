@@ -11,7 +11,7 @@ from app.models import User, Location, Space, Group
 router = APIRouter(prefix="/search", tags=["ui-compat"])
 
 
-# --- permessi "compat" ---
+# permessi
 def _can_space_admin_org(user: User) -> bool:
     
     return getattr(user, "role", None) in ("admin", "org_admin", "super_admin")
@@ -51,7 +51,7 @@ def get_results(
         "groups": [],
     }
 
-    # ---- USERS ----
+    # USERS 
     if includeUsers == "1" and _can_admin_org(current_user):
        
         q = db.query(User).filter(User.organization_id == current_user.organization_id)
@@ -85,7 +85,7 @@ def get_results(
                 }
             )
 
-    # ---- GROUPS ----
+    # GROUPS
     if includeGroups == "1":
         
         q = db.query(Group).filter(Group.organization_id == current_user.organization_id)
@@ -101,7 +101,7 @@ def get_results(
                 }
             )
 
-    # ---- LOCATIONS ----
+    # LOCATIONS
     if includeLocations == "1":
         
         q = db.query(Location).filter(Location.organization_id == current_user.organization_id)
@@ -119,7 +119,7 @@ def get_results(
                 }
             )
 
-    # ---- SPACES ----
+    # SPACES
     if includeSpaces == "1":
         
         q = db.query(Space).filter(Space.organization_id == current_user.organization_id)

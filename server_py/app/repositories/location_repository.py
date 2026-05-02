@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Optional
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
@@ -32,7 +32,6 @@ class LocationMapRow:
 
 
 class LocationRepository:
-    # -------- CREATE --------
     def create(
         self,
         db: Session,
@@ -43,10 +42,6 @@ class LocationRepository:
         timezone: str = "",
         enabled: bool = True,
     ) -> str:
-        """
-        Replica LocationRepository.Create del Go.
-        In Go: INSERT (organization_id, name, description, max_concurrent_bookings, tz, enabled) RETURNING id
-        """
         location_id = db.execute(
             text("""
                 INSERT INTO locations
@@ -68,19 +63,20 @@ class LocationRepository:
         db.commit()
         return str(location_id)
 
-    # -------- GET ONE --------
     def get_one(self, db: Session, location_id: str) -> Optional[LocationRow]:
-        """
-        Replica GetOne del Go.
-        Nota: Go legge tz. Se nel DB ci fosse timezone, facciamo fallback con COALESCE.
-        """
         row = db.execute(
             text("""
                 SELECT
-                    id, organization_id, name,
-                    map_mimetype, map_width, map_height, map_scale,
-                    description, max_concurrent_bookings,
-                    COALESCE(tz, timezone, '') as tz,
+                    id,
+                    organization_id,
+                    name,
+                    map_mimetype,
+                    map_width,
+                    map_height,
+                    map_scale,
+                    description,
+                    max_concurrent_bookings,
+                    COALESCE(tz, '') AS tz,
                     enabled
                 FROM locations
                 WHERE id = :id
@@ -105,18 +101,20 @@ class LocationRepository:
             enabled=bool(row["enabled"]),
         )
 
-    # -------- GET ALL --------
     def get_all(self, db: Session, organization_id: str) -> list[LocationRow]:
-        """
-        Replica GetAll del Go.
-        """
         rows = db.execute(
             text("""
                 SELECT
-                    id, organization_id, name,
-                    map_mimetype, map_width, map_height, map_scale,
-                    description, max_concurrent_bookings,
-                    COALESCE(tz, timezone, '') as tz,
+                    id,
+                    organization_id,
+                    name,
+                    map_mimetype,
+                    map_width,
+                    map_height,
+                    map_scale,
+                    description,
+                    max_concurrent_bookings,
+                    COALESCE(tz, '') AS tz,
                     enabled
                 FROM locations
                 WHERE organization_id = :org_id
@@ -142,21 +140,22 @@ class LocationRepository:
             for r in rows
         ]
 
-    # -------- GET BY KEYWORD --------
     def get_by_keyword(self, db: Session, organization_id: str, keyword: str) -> list[LocationRow]:
-        """
-        Replica GetByKeyword del Go:
-        WHERE organization_id = $1 AND LOWER(name) LIKE '%' || $2 || '%'
-        """
         kw = (keyword or "").strip().lower()
 
         rows = db.execute(
             text("""
                 SELECT
-                    id, organization_id, name,
-                    map_mimetype, map_width, map_height, map_scale,
-                    description, max_concurrent_bookings,
-                    COALESCE(tz, timezone, '') as tz,
+                    id,
+                    organization_id,
+                    name,
+                    map_mimetype,
+                    map_width,
+                    map_height,
+                    map_scale,
+                    description,
+                    max_concurrent_bookings,
+                    COALESCE(tz, '') AS tz,
                     enabled
                 FROM locations
                 WHERE organization_id = :org_id
@@ -183,11 +182,7 @@ class LocationRepository:
             for r in rows
         ]
 
-    # -------- COUNT --------
     def count(self, db: Session, organization_id: str) -> int:
-        """
-        Replica GetCount del Go.
-        """
         return int(
             db.execute(
                 text("""
@@ -199,7 +194,6 @@ class LocationRepository:
             ).scalar_one()
         )
 
-    # -------- UPDATE --------
     def update(
         self,
         db: Session,
@@ -212,9 +206,6 @@ class LocationRepository:
         timezone: str,
         enabled: bool,
     ) -> None:
-        """
-        Replica Update del Go.
-        """
         db.execute(
             text("""
                 UPDATE locations SET
@@ -240,7 +231,6 @@ class LocationRepository:
         )
         db.commit()
 
-    # -------- MAP: SET --------
     def set_map(
         self,
         db: Session,
@@ -251,9 +241,6 @@ class LocationRepository:
         height: int,
         scale: float,
     ) -> None:
-        """
-        Replica SetMap del Go.
-        """
         db.execute(
             text("""
                 UPDATE locations SET
@@ -275,11 +262,7 @@ class LocationRepository:
         )
         db.commit()
 
-    # -------- MAP: GET --------
     def get_map(self, db: Session, location_id: str) -> Optional[LocationMapRow]:
-        """
-        Replica GetMap del Go.
-        """
         row = db.execute(
             text("""
                 SELECT map_mimetype, map_data, map_width, map_height, map_scale
@@ -300,12 +283,7 @@ class LocationRepository:
             scale=float(row["map_scale"] or 1.0),
         )
 
-    # -------- DELETE (cascade manuale come Go) --------
     def delete(self, db: Session, location_id: str) -> None:
-        """
-        Replica Delete del Go (cascata manuale).
-        """
-        # bookings delle spaces della location
         db.execute(
             text("""
                 DELETE FROM bookings
@@ -316,7 +294,6 @@ class LocationRepository:
             {"loc_id": location_id},
         )
 
-        # spaces della location
         db.execute(
             text("""
                 DELETE FROM spaces
@@ -325,7 +302,6 @@ class LocationRepository:
             {"loc_id": location_id},
         )
 
-        
         db.execute(
             text("""
                 DELETE FROM space_attribute_values
@@ -335,7 +311,6 @@ class LocationRepository:
             {"loc_id": location_id, "entity_type": "location"},
         )
 
-        # location
         db.execute(
             text("""
                 DELETE FROM locations
@@ -346,12 +321,7 @@ class LocationRepository:
 
         db.commit()
 
-    # -------- DELETE ALL (org) come Go --------
     def delete_all(self, db: Session, organization_id: str) -> None:
-        """
-        Replica DeleteAll del Go.
-        """
-        # bookings per org (via locations->spaces)
         db.execute(
             text("""
                 DELETE FROM bookings
@@ -366,7 +336,6 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # recurring_bookings per org
         db.execute(
             text("""
                 DELETE FROM recurring_bookings
@@ -381,7 +350,6 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # space_attribute_values per locations
         db.execute(
             text("""
                 DELETE FROM space_attribute_values
@@ -400,7 +368,6 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # spaces per org
         db.execute(
             text("""
                 DELETE FROM spaces
@@ -411,7 +378,6 @@ class LocationRepository:
             {"org_id": organization_id},
         )
 
-        # locations per org
         db.execute(
             text("""
                 DELETE FROM locations

@@ -60,6 +60,7 @@ import AjaxError from "@/util/AjaxError";
 import UserPreference from "@/types/UserPreference";
 import User from "@/types/User";
 import DateTimePicker from "@/components/DateTimePicker";
+import ChatLauncher from "@/components/ChatLauncher";
 
 interface State {
   earliestEnterDate: Date;
@@ -2525,6 +2526,11 @@ class Search extends React.Component<Props, State> {
         {listOrMap}
         <Loading visible={this.state.loading} />
         {configContainer}
+        <ChatLauncher
+          locationId= {this.state.locationId}
+          locationName={this.getLocationName()}
+          onBookingCreated={() => this.refreshPage()}
+        />
       </>
     );
   }

@@ -24,7 +24,7 @@ class BookingRow:
 
 
 class BookingRepository:
-    # ---------- CREATE ----------
+    # CREATE 
     def create(
         self,
         db: Session,
@@ -67,7 +67,7 @@ class BookingRepository:
         db.commit()
         return str(booking_id)
 
-    # ---------- GET ONE (BookingDetails) ----------
+    # GET ONE (BookingDetails)
     def get_one_details(self, db: Session, booking_id: str) -> dict[str, Any] | None:
         """
         Replica BookingRepository.GetOne del Go: ritorna booking + space + location + user email.
@@ -91,7 +91,7 @@ class BookingRepository:
 
         return dict(row) if row else None
 
-    # ---------- LIST BY ORG (date range) ----------
+    # LIST BY ORG (date range) 
     def list_by_org_date_range(
         self,
         db: Session,
@@ -124,7 +124,7 @@ class BookingRepository:
 
         return [dict(r) for r in rows]
 
-    # ---------- LIST CURRENT BY ORG ----------
+    # LIST CURRENT BY ORG 
     def list_current_by_org(self, db: Session, organization_id: str) -> list[dict[str, Any]]:
         """
         Replica BookingRepository.GetAllCurrentByOrg del Go.
@@ -150,7 +150,7 @@ class BookingRepository:
         ).mappings().all()
         return [dict(r) for r in rows]
 
-    # ---------- FIRST UPCOMING/CURRENT BY USER ----------
+    # FIRST UPCOMING/CURRENT BY USER
     def first_upcoming_or_current_by_user(self, db: Session, user_id: str) -> dict[str, Any] | None:
         """
         Replica GetFirstUpcomingOrCurrentBookingByUserID del Go.
@@ -176,7 +176,7 @@ class BookingRepository:
         ).mappings().first()
         return dict(row) if row else None
 
-    # ---------- CONFLICTS (space overlap) ----------
+    # CONFLICTS (space overlap) 
     def list_conflicts_for_space(
         self,
         db: Session,
@@ -221,7 +221,7 @@ class BookingRepository:
             for r in rows
         ]
 
-    # ---------- PENDING REQUIRING APPROVAL (approver user) ----------
+    # PENDING REQUIRING APPROVAL (approver user) 
     def list_requiring_approval(
         self,
         db: Session,

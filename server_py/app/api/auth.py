@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import urllib.parse
+import requests
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import RedirectResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -8,13 +12,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.jwt import create_access_token, decode_access_token
 from app.core.security import verify_password
-from app.models import Organization, User
+from app.models import AuthProvider, Organization, OrganizationDomain, User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 bearer_scheme = HTTPBearer(auto_error=False)
 
 
-# --------- Schemas ---------
+# Schemas
 
 class JWTResponse(BaseModel):
     accessToken: str
@@ -51,7 +55,7 @@ class AuthPreflightResponse(BaseModel):
     domain: str = ""
 
 
-# --------- Helpers ---------
+# HELPERS
 
 def _org_require_password(db: Session, org_id: str) -> bool:
     return (
@@ -64,25 +68,56 @@ def _org_require_password(db: Session, org_id: str) -> bool:
     )
 
 
+def _public_auth_providers_for_org(db: Session, org_id: str):
+    providers = (
+        db.query(AuthProvider)
+        .filter(AuthProvider.organization_id == org_id)
+        .all()
+    )
+
+    return [
+        AuthProviderPublicResponse(
+            id=str(p.id),
+            name=p.name
+        )
+        for p in providers
+    ]
+
+
 def _resolve_org_from_domain(db: Session, domain: str) -> Organization | None:
-    """
-    FE chiama /auth/org/localhost.
-    Non avendo una tabella domini, mapping semplice:
-    - localhost/127.0.0.1 -> prova org 'seatsurfing'
-    - altrimenti org.id == domain
-    - fallback: se esiste una sola org -> usa quella
-    """
     dom = (domain or "").strip().lower()
 
-    if dom in {"localhost", "127.0.0.1"}:
-        org = db.query(Organization).order_by(Organization.name.asc()).first()
+    localhost_aliases = {
+        "localhost",
+        "127.0.0.1",
+        "localhost:3000",
+        "127.0.0.1:3000",
+        "localhost:8000",
+        "127.0.0.1:8000",
+        "localhost:8080",
+        "127.0.0.1:8080",
+        "localhost:5173",
+        "127.0.0.1:5173",
+    }
+
+    if dom in localhost_aliases:
+        org = db.query(Organization).first()
         if org:
             return org
 
-    org = db.query(Organization).filter(Organization.id == domain).first()
-    if org:
-        return org
+    
+    org_domain = (
+        db.query(OrganizationDomain)
+        .filter(OrganizationDomain.domain == dom)
+        .first()
+    )
 
+    if org_domain:
+        return db.query(Organization).filter(
+            Organization.id == org_domain.organization_id
+        ).first()
+
+    # fallback
     orgs = db.query(Organization).all()
     if len(orgs) == 1:
         return orgs[0]
@@ -90,26 +125,104 @@ def _resolve_org_from_domain(db: Session, domain: str) -> Organization | None:
     return None
 
 
-# --------- Routes (parte OAuth non implementata) ---------
+# ROUTES
 
 @router.get("/verify/{id}", response_model=JWTResponse)
 def verify(id: str):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
+    raise HTTPException(status_code=501, detail="Not implemented")
 
 
+# LOGIN MICROSOFT
 @router.get("/{id}/login/{type}/")
-def login(id: str, type: str, redir: str | None = Query(default=None)):
-    if type not in {"web", "app", "ui"}:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid login type")
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
+def login(
+    id: str,
+    type: str,
+    redir: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+):
+    provider = db.query(AuthProvider).filter(AuthProvider.id == id).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    redirect_uri = f"http://localhost:8000/auth/{id}/callback"
+
+    params = {
+        "client_id": provider.client_id,
+        "response_type": "code",
+        "redirect_uri": redirect_uri,
+        "response_mode": "query",
+        "scope": provider.scopes,
+        "state": "xyz"
+    }
+
+    url = provider.auth_url + "?" + urllib.parse.urlencode(params)
+
+    return RedirectResponse(url)
 
 
+# CALLBACK MICROSOFT
 @router.get("/{id}/callback")
-def callback(id: str):
-    raise HTTPException(status_code=status.HTTP_501_NOT_IMPLEMENTED, detail="Not implemented")
+def callback(id: str, code: str, db: Session = Depends(get_db)):
+    provider = db.query(AuthProvider).filter(AuthProvider.id == id).first()
+    if not provider:
+        raise HTTPException(status_code=404, detail="Provider not found")
+
+    redirect_uri = f"http://localhost:8000/auth/{id}/callback"
+
+    # scambio code → token
+    token_res = requests.post(
+        provider.token_url,
+        data={
+            "client_id": provider.client_id,
+            "client_secret": provider.client_secret,
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": redirect_uri,
+        },
+    )
+
+    token_data = token_res.json()
+    access_token = token_data.get("access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=400, detail="Token error")
+
+    # prendi dati utente
+    userinfo_res = requests.get(
+        provider.userinfo_url,
+        headers={"Authorization": f"Bearer {access_token}"}
+    )
+
+    userinfo = userinfo_res.json()
+
+    email = userinfo.get(provider.userinfo_email_field)
+    firstname = userinfo.get(provider.userinfo_firstname_field, "")
+    lastname = userinfo.get(provider.userinfo_lastname_field, "")
+
+    if not email:
+        raise HTTPException(status_code=400, detail="Email missing")
+
+    # crea utente se non esiste
+    user = db.query(User).filter(User.email == email).first()
+
+    if not user:
+        user = User(
+            email=email,
+            firstname=firstname,
+            lastname=lastname,
+            organization_id=provider.organization_id,
+        )
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+    jwt_token = create_access_token(str(user.id))
+
+    # redirect UI
+    return RedirectResponse(f"http://localhost:3000/?token={jwt_token}")
 
 
-# --------- Password login ---------
+# PASSWORD LOGIN 
 
 @router.post("/login", response_model=JWTResponse)
 def login_password(payload: LoginRequest, db: Session = Depends(get_db)):
@@ -121,11 +234,10 @@ def login_password(payload: LoginRequest, db: Session = Depends(get_db)):
     )
 
     if not user or not verify_password(payload.password, user.hashed_password):
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
+        raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = create_access_token(str(user.id))
 
-    # FE spesso pretende che refreshToken esista -> in dev riusiamo lo stesso token
     return JWTResponse(
         accessToken=access_token,
         refreshToken=access_token,
@@ -134,22 +246,14 @@ def login_password(payload: LoginRequest, db: Session = Depends(get_db)):
     )
 
 
-# --------- Refresh token (FIX CRITICO) ---------
+# REFRESH TOKEN
 
 @router.post("/refresh", response_model=JWTResponse)
 def refresh_access_token(
+    request: Request,
     payload: RefreshRequest | None = None,
-    request: Request = None,
     credentials: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
 ):
-    """
-    Seatsurfing FE spesso chiama /auth/refresh SENZA body.
-    Quindi recuperiamo il token da:
-    1. payload.refreshToken
-    2. Authorization Bearer
-    3. cookie accessToken
-    """
-
     token = None
 
     if payload and payload.refreshToken:
@@ -158,58 +262,41 @@ def refresh_access_token(
     if not token and credentials:
         token = credentials.credentials
 
-    if not token and request:
+    if not token:
         token = request.cookies.get("accessToken")
 
     if not token:
-        raise HTTPException(status_code=401, detail="Missing refresh token")
+        raise HTTPException(status_code=401, detail="Missing token")
 
     data = decode_access_token(token)
+    user_id = data.get("sub")
 
-    user_id = data.get("sub") or data.get("user_id") or data.get("id")
     if not user_id:
-        raise HTTPException(status_code=401, detail="Invalid refresh token")
+        raise HTTPException(status_code=401, detail="Invalid token")
 
-    new_access = create_access_token(str(user_id))
+    new_token = create_access_token(str(user_id))
 
     return JWTResponse(
-        accessToken=new_access,
+        accessToken=new_token,
         refreshToken=token,
         logoutUrl="",
         profilePageUrl="",
     )
 
 
-# --------- Preflight org ---------
-
-@router.get("/singleorg", response_model=AuthPreflightResponse)
-@router.get("/singleorg/", response_model=AuthPreflightResponse)
-def single_org(db: Session = Depends(get_db)):
-    orgs = db.query(Organization).all()
-    if len(orgs) != 1:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
-
-    org = orgs[0]
-    return AuthPreflightResponse(
-        organization=OrganizationOut(id=str(org.id), name=org.name),
-        authProviders=[],
-        requirePassword=_org_require_password(db, org.id),
-        disablePasswordLogin=False,
-        domain="",
-    )
-
+# ORG PREFLIGHT
 
 @router.get("/org/{domain}", response_model=AuthPreflightResponse)
-@router.get("/org/{domain}/", response_model=AuthPreflightResponse)
-def get_org_details(domain: str, db: Session = Depends(get_db)):
+def get_org(domain: str, db: Session = Depends(get_db)):
     org = _resolve_org_from_domain(db, domain)
+
     if not org:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+        raise HTTPException(status_code=404, detail="Not found")
 
     return AuthPreflightResponse(
         organization=OrganizationOut(id=str(org.id), name=org.name),
-        authProviders=[],
-        requirePassword=_org_require_password(db, org.id),
+        authProviders=_public_auth_providers_for_org(db, str(org.id)),
+        requirePassword=_org_require_password(db, str(org.id)),
         disablePasswordLogin=False,
         domain=domain,
     )

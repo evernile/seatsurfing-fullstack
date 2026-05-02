@@ -10,8 +10,7 @@ from app.models import Group, UserGroup
 
 
 class GroupRepository:
-    # ---------- CRUD ----------
-
+    # CRUD
     def create(self, db: Session, e: Group) -> Group:
         db.add(e)
         db.commit()
@@ -105,8 +104,8 @@ class GroupRepository:
         db.query(Group).filter(Group.organization_id == organization_id).delete(synchronize_session=False)
         db.commit()
 
-    # ---------- Membership ----------
 
+    # Membership
     def get_member_user_ids(self, db: Session, group_id: str) -> list[str]:
         try:
             gid = uuid.UUID(group_id)

@@ -7,8 +7,6 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 
 
-# === Requests ===
-
 class CreateLocationRequest(BaseModel):
     name: str = Field(..., alias="name")
     description: str = Field("", alias="description")
@@ -45,8 +43,6 @@ class SearchLocationRequest(BaseModel):
     class Config:
         populate_by_name = True
 
-
-# === Responses ===
 
 class GetLocationResponse(BaseModel):
     id: UUID

@@ -11,10 +11,7 @@ from app.services.sample_data import create_sample_data
 
 
 class OrganizationRepository:
-    # -------------------------
-    # Organizations
-    # -------------------------
-
+    
     def get_one(self, db: Session, org_id: str) -> Organization | None:
         return db.query(Organization).filter(Organization.id == org_id).first()
 
@@ -93,10 +90,7 @@ class OrganizationRepository:
 
         db.commit()
 
-    # -------------------------
-    # Domains
-    # -------------------------
-
+    
     def get_one_by_domain(self, db: Session, domain: str) -> Organization | None:
         dom = (domain or "").lower()
         return (

@@ -1,5 +1,3 @@
-# app/repositories/space_attribute_value_repository.py
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -43,7 +41,7 @@ class SpaceAttributeValueRepository:
         db.commit()
 
     def run_schema_upgrade(self, cur_version: int, target_version: int) -> None:
-        # Go: nothing yet
+        
         return
 
     def set(
