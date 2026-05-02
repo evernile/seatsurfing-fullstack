@@ -1,100 +1,74 @@
-# Seatsurfing
+# Seatsurfing Fullstack Application
 
-[![](https://img.shields.io/github/v/release/seatsurfing/seatsurfing)](https://github.com/seatsurfing/seatsurfing/releases)
-[![](https://img.shields.io/github/release-date/seatsurfing/seatsurfing)](https://github.com/seatsurfing/seatsurfing/releases)
-[![](https://img.shields.io/github/actions/workflow/status/seatsurfing/seatsurfing/release.yml?branch=main)](https://github.com/seatsurfing/seatsurfing/actions)
-[![](https://img.shields.io/github/license/seatsurfing/seatsurfing)](https://github.com/seatsurfing/seatsurfing/blob/main/LICENSE)
+Fullstack desk and room booking application developed with a backend-focused architecture.  
+The project is designed to manage workspace reservations, authentication, and scalable API interactions in an enterprise context.
 
-## 🚀 Seatsurfing SaaS available!
+---
 
-We offer [Seatsurfing](https://seatsurfing.io/) as a fully-hosted Software-as-a-Service (SaaS) at. [Start for free now](https://seatsurfing.io/sign-up)!
+## 🚀 Tech Stack
 
-- **No installation required** - Get started immediately
-- **Microsoft Teams integration** - See [Microsoft AppSource marketplace](https://appsource.microsoft.com/product/office/WA200008773)
-- **Get it free** - Free for up to 10 users
-- **Automatic updates** - Always enjoy the latest features
-- **Managed infrastructure** - Servers in Germany (EU)
+- **Backend:** Python (FastAPI)
+- **Database:** PostgreSQL
+- **API:** REST (OpenAPI / Swagger)
+- **Frontend:** React / TypeScript
+- **Version Control:** Git
+- **Containerization:** Docker (base usage)
 
-## 📖 Introduction
+---
 
-Seatsurfing is a software which enables your organization's employees to book seats, desks and rooms.
+## ⚙️ Features
 
-This repository contains the Backend, which consists of:
+- User authentication (JWT-based)
+- Booking management system (desk/room reservations)
+- REST API design and documentation (Swagger/OpenAPI)
+- Database integration and relational data modeling
+- Backend logic for enterprise use cases
+- Modular and scalable architecture
+- Integration-ready system for frontend applications
 
-- The Server (REST API Backend) written in Go
-- User Self-Service Booking Web Interface ("Booking UI"), built as a Progressive Web Application (PWA) which can be installed on mobile devices
-- Admin Web Interface ("Admin UI")
-- Common TypeScript files for the two TypeScript/React web frontends
+---
 
-**[Visit project's website for more information.](https://seatsurfing.io)**
+## 🏗️ Architecture
 
-## 📷 Screenshots
+The application follows a **client-server architecture**:
 
-### Web Admin UI
+- Backend developed with FastAPI for high-performance APIs
+- PostgreSQL used for structured data management
+- RESTful communication between frontend and backend
+- Modular design to support scalability and maintainability
 
-![Seatsurfing Web Admin UI](https://raw.githubusercontent.com/seatsurfing/seatsurfing/main/.github/admin-ui.png)
+---
 
-### Web Booking UI
+## 📌 Project Highlights
 
-![Seatsurfing Web Booking UI](https://raw.githubusercontent.com/seatsurfing/seatsurfing/main/.github/booking-ui.png)
+- Developed and managed backend APIs in a real-world project context
+- Implemented authentication and secure data handling
+- Designed database schemas and optimized queries
+- Worked with API testing tools (Swagger/OpenAPI)
+- Used Git for version control and collaboration
+- Exposure to fullstack integration (backend + frontend)
 
-## 🗸 Quick reference
+---
 
-- **Maintained by:** [seatsurfing.io](https://seatsurfing.io/)
-- **Where to get help:** [Documentation](https://seatsurfing.io/docs/)
-- **Docker architectures:** [amd64, arm64](https://github.com/seatsurfing/seatsurfing/pkgs/container/backend)
-- **License:** [GPL 3.0](https://github.com/seatsurfing/seatsurfing/blob/main/LICENSE)
+## 🧪 Future Improvements
 
-## 🐋 How to use the Docker image
+- CI/CD pipeline integration
+- Advanced Docker containerization
+- Monitoring and logging systems
+- Performance optimization and scaling
+- Extended AI-based features for smart booking
 
-### Start using Docker Compose
+---
 
-```
-services:
-  server:
-    image: ghcr.io/seatsurfing/backend
-    restart: always
-    networks:
-      sql:
-    ports:
-      - 8080:8080
-    environment:
-      POSTGRES_URL: 'postgres://seatsurfing:DB_PASSWORD@db/seatsurfing?sslmode=disable'
-      CRYPT_KEY: 'some-random-32-bytes-long-string'
-  db:
-    image: postgres:17
-    restart: always
-    networks:
-      sql:
-    volumes:
-      - db:/var/lib/postgresql/data
-    environment:
-      POSTGRES_PASSWORD: DB_PASSWORD
-      POSTGRES_USER: seatsurfing
-      POSTGRES_DB: seatsurfing
+## 👩‍💻 Author
 
-volumes:
-  db:
+**Elisabetta Vernile**  
+Junior Software Developer  
 
-networks:
-  sql:
-```
+GitHub: https://github.com/evernile/seatsurfing-fullstack
 
-This starts...
+---
 
-- a PostgreSQL database with data stored on Docker volume "db"
-- a Seatsurfing instance with port 8080 exposed
+## 📎 Notes
 
-The Seatsurfing Booking UI is accessible at :8080/ui/search/ and the Seatsurfing Admin UI instance at :8080/ui/admin/.
-
-To login, use the default admin login (user `admin@seatsurfing.local` and password `12345678`) or set the [environment variables](https://seatsurfing.io/docs/self-hosted/config) `INIT_ORG_USER` and `INIT_ORG_PASS` to customize the admin login.
-
-### Running on Kubernetes
-
-Please refer to our [Kubernetes documentation](https://seatsurfing.io/docs/self-hosted/kubernetes/).
-
-## ⚙️ Environment variables
-
-Please check out the [documentation](https://seatsurfing.io/docs/self-hosted/config) for information on available environment variables and further guidance.
-
-**Hint**: When running in an IPV6-only Docker/Podman environment with multiple network interfaces bound to the Frontend containers, setting the `LISTEN_ADDR` environment variable can be necessary as NextJS binds to only one network interface by default. Set it to `::` to bind to any address.
+This project was developed as part of a practical experience in software development, focusing on backend systems, API design, and integration with modern web technologies.
