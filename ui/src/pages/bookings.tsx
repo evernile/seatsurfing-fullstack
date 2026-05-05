@@ -46,6 +46,13 @@ interface Props {
   t: TranslationFunc;
 }
 
+type Event = {
+  start: Date;
+  end: Date;
+  title: string;
+  booking: Booking;
+};
+
 class Bookings extends React.Component<Props, State> {
   data: Booking[];
 
@@ -85,17 +92,16 @@ class Bookings extends React.Component<Props, State> {
   };
 
   cancelBooking = async () => {
-    if (!this.state.selectedItem) {
-      return;
-    }
-    this.setState({
-      deletingItem: true,
-    });
-    let item: any;
-    item = this.state.selectedItem;
+    if (!this.state.selectedItem) return;
+
+    this.setState({ deletingItem: true });
+
+    let item: any = this.state.selectedItem;
+
     if (this.state.cancelSeries && item.isRecurring()) {
       item = await RecurringBooking.get(item.recurringId);
     }
+
     item.delete().then(
       () => {
         this.setState(
@@ -115,6 +121,7 @@ class Bookings extends React.Component<Props, State> {
         } else {
           window.alert(this.props.t("errorDeleteBooking"));
         }
+
         this.setState(
           {
             selectedItem: null,
@@ -129,10 +136,13 @@ class Bookings extends React.Component<Props, State> {
 
   renderItem = (item: Booking) => {
     let formatter = Formatting.getFormatter();
+
     if (RuntimeConfig.INFOS.dailyBasisBooking) {
       formatter = Formatting.getFormatterNoTime();
     }
+
     let pending = <></>;
+
     if (item.approved === false) {
       pending = (
         <>
@@ -142,12 +152,15 @@ class Bookings extends React.Component<Props, State> {
         </>
       );
     }
+
     let recurringIcon = <></>;
+
     if (item.isRecurring()) {
       recurringIcon = (
         <IconRecurring className="feather recurring-booking-icon" />
       );
     }
+
     return (
       <ListGroup.Item
         key={item.id}
@@ -180,32 +193,15 @@ class Bookings extends React.Component<Props, State> {
       return <Loading />;
     }
 
-    if (this.data.length === 0) {
-      return (
-        <>
-          <NavBar />
-          <div className="container-signin">
-            <Form className="form-signin">
-              <p>{this.props.t("noBookings")}</p>
-            </Form>
-          </div>
-        </>
-      );
-    }
-
-    type Event = {
-      start: Date;
-      end: Date;
-      title: string;
-      booking: Booking;
-    };
-
     const calendarEvents: Event[] = [];
+
     for (const item of this.data) {
       let title = `${item.space.location.name} (${item.space.name})`;
+
       if (item.subject) {
         title += `, ${item.subject}`;
       }
+
       if (item.isRecurring()) {
         title += ` (${this.props.t("recurring")})`;
       }
@@ -213,18 +209,18 @@ class Bookings extends React.Component<Props, State> {
       calendarEvents.push({
         start: item.enter,
         end: item.leave,
-        title, // used in tooltip
+        title,
         booking: item,
       });
     }
 
     let formatter = Formatting.getFormatter();
+
     if (RuntimeConfig.INFOS.dailyBasisBooking) {
       formatter = Formatting.getFormatterNoTime();
     }
 
     const CustomEvent = ({ event }: { event: Event }) => {
-      // show no information for events < 1 hr
       if (
         event.booking.leave.getTime() - event.booking.enter.getTime() <=
         60 * 60 * 1000
@@ -233,6 +229,7 @@ class Bookings extends React.Component<Props, State> {
       }
 
       let pending = <></>;
+
       if (event.booking.approved === false) {
         pending = (
           <>
@@ -245,7 +242,9 @@ class Bookings extends React.Component<Props, State> {
           </>
         );
       }
+
       let recurringIcon = <></>;
+
       if (event.booking.isRecurring()) {
         recurringIcon = (
           <IconRecurring
@@ -287,7 +286,7 @@ class Bookings extends React.Component<Props, State> {
 
       const weekStart = moment(toolbar.date).clone().startOf("week");
       const weekEnd = moment(toolbar.date).clone().endOf("week");
-      const formatter = Formatting.getFormatterDate();
+      const formatterDate = Formatting.getFormatterDate();
 
       return (
         <div
@@ -324,8 +323,8 @@ class Bookings extends React.Component<Props, State> {
               alignItems: "center",
             }}
           >
-            {formatter.format(weekStart.toDate())} -{" "}
-            {formatter.format(weekEnd.toDate())}
+            {formatterDate.format(weekStart.toDate())} -{" "}
+            {formatterDate.format(weekEnd.toDate())}
           </span>
         </div>
       );
@@ -333,56 +332,87 @@ class Bookings extends React.Component<Props, State> {
 
     moment.tz.setDefault("UTC");
     moment.locale(Formatting.Language);
+
     const calendarLocalizer = momentLocalizer(moment);
+    const hasBookings = this.data.length > 0;
 
     return (
       <>
         <NavBar />
+
         <div className="container-signin">
-          <div className="d-lg-block d-none container-search-config">
-            <div className="content" style={{ paddingTop: "5px" }}>
-              <Form>
-                <Form.Group className="d-flex margin-top-10">
-                  <div className="me-2">
-                    <CalendarIcon
-                      title={this.props.t("map")}
-                      color={"#555"}
-                      height="20px"
-                      width="20px"
-                    />
-                  </div>
-                  <div className="ms-2 w-100">
-                    <Form.Check
-                      style={{ textAlign: "start" }}
-                      type="switch"
-                      checked={this.state.calendarShow}
-                      onChange={() => {
-                        this.setState({
-                          calendarShow: !this.state.calendarShow,
-                        });
-                      }}
-                      label={this.props.t("calendar")}
-                      aria-label={this.props.t("calendar")}
-                      id="switch-control"
-                    />
-                  </div>
-                </Form.Group>
-              </Form>
-            </div>
+          <div
+            className="d-lg-block d-none"
+            style={{
+              position: "fixed",
+              left: "24px",
+              bottom: "24px",
+              zIndex: 1000,
+              background: "rgba(255,255,255,0.95)",
+              border: "1px solid #ddd",
+              borderRadius: "12px",
+              padding: "10px 14px",
+              boxShadow: "0 4px 14px rgba(0,0,0,0.12)",
+            }}
+          >
+            <Form>
+              <Form.Group className="d-flex align-items-center">
+                <div className="me-2">
+                  <CalendarIcon
+                    title={this.props.t("map")}
+                    color={"#555"}
+                    height="20px"
+                    width="20px"
+                  />
+                </div>
+
+                <div>
+                  <Form.Check
+                    style={{ textAlign: "start", marginBottom: 0 }}
+                    type="switch"
+                    checked={this.state.calendarShow}
+                    onChange={() => {
+                      this.setState({
+                        calendarShow: !this.state.calendarShow,
+                      });
+                    }}
+                    label={this.props.t("calendar")}
+                    aria-label={this.props.t("calendar")}
+                    id="switch-control"
+                  />
+                </div>
+              </Form.Group>
+            </Form>
           </div>
 
-          {/* classic view */}
+          {!hasBookings && (
+            <div
+              style={{
+                width: "100%",
+                padding: "10px 16px",
+                marginBottom: "8px",
+                color: "#666",
+                textAlign: "center",
+              }}
+            >
+              {this.props.t("noBookings")}
+            </div>
+          )}
+
           <Form
             className={
               !this.state.calendarShow ? "form-signin" : "form-signin d-lg-none"
             }
           >
-            <ListGroup>
-              {this.data.map((item) => this.renderItem(item))}
-            </ListGroup>
+            {hasBookings ? (
+              <ListGroup>
+                {this.data.map((item) => this.renderItem(item))}
+              </ListGroup>
+            ) : (
+              <p>{this.props.t("noBookings")}</p>
+            )}
           </Form>
 
-          {/* calendar view */}
           <div
             className={this.state.calendarShow ? "d-none d-lg-block" : "d-none"}
             style={{ width: "100%" }}
@@ -393,7 +423,7 @@ class Bookings extends React.Component<Props, State> {
               startAccessor="start"
               endAccessor="end"
               style={{
-                height: "calc(100vh - 160px)",
+                height: "calc(100vh - 190px)",
                 width: "100%",
                 padding: "10px",
                 margin: "auto",
@@ -403,8 +433,10 @@ class Bookings extends React.Component<Props, State> {
               onNavigate={(newDate: Date) => {
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
+
                 const navigateDate = new Date(newDate);
                 navigateDate.setHours(0, 0, 0, 0);
+
                 if (navigateDate >= today) {
                   this.setState({ calendarDate: newDate });
                 }
@@ -420,7 +452,7 @@ class Bookings extends React.Component<Props, State> {
                 event: CustomEvent,
               }}
               scrollToTime={new Date(Date.UTC(1970, 1, 1, 8, 0, 0))}
-            ></Calendar>
+            />
           </div>
         </div>
 
@@ -431,10 +463,12 @@ class Bookings extends React.Component<Props, State> {
           <Modal.Header closeButton>
             <Modal.Title>{this.props.t("cancelBooking")}</Modal.Title>
           </Modal.Header>
+
           <Modal.Body>
             <h6 hidden={!this.state.selectedItem?.subject}>
               {this.state.selectedItem?.subject}
             </h6>
+
             <p
               dangerouslySetInnerHTML={{
                 __html: this.props.t("confirmCancelBooking", {
@@ -442,6 +476,7 @@ class Bookings extends React.Component<Props, State> {
                 }),
               }}
             ></p>
+
             <div hidden={!this.state.selectedItem?.isRecurring()}>
               <Form.Check
                 type="checkbox"
@@ -454,6 +489,7 @@ class Bookings extends React.Component<Props, State> {
               />
             </div>
           </Modal.Body>
+
           <Modal.Footer>
             <Button
               variant="secondary"
@@ -462,6 +498,7 @@ class Bookings extends React.Component<Props, State> {
             >
               {this.props.t("back")}
             </Button>
+
             <Button
               variant="secondary"
               onClick={() => {
@@ -480,6 +517,7 @@ class Bookings extends React.Component<Props, State> {
               />{" "}
               Event
             </Button>
+
             <Button
               variant="danger"
               onClick={() => this.cancelBooking()}

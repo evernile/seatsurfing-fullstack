@@ -24,7 +24,7 @@ La prenotazione reale viene effettuata dal frontend/backend SeatSurfing tramite 
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client: Optional[OpenAI] = None
 
 
 class HistoryMessage(BaseModel):
@@ -66,6 +66,80 @@ class ChatResponse(BaseModel):
         "cancel_booking",
         "none",
     ] = "none"
+
+
+CHAT_RESPONSE_FORMAT = {
+    "type": "json_schema",
+    "name": "seatsurfing_chat_response",
+    "strict": True,
+    "schema": {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["response", "intent", "parsed", "missing_fields", "next_action"],
+        "properties": {
+            "response": {"type": "string"},
+            "intent": {
+                "type": "string",
+                "enum": [
+                    "chat",
+                    "booking_request",
+                    "availability_request",
+                    "cancel_request",
+                    "modify_request",
+                    "out_of_scope",
+                ],
+            },
+            "parsed": {
+                "anyOf": [
+                    {"type": "null"},
+                    {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": [
+                            "enter",
+                            "leave",
+                            "locationId",
+                            "locationName",
+                        ],
+                        "properties": {
+                            "enter": {"type": ["string", "null"]},
+                            "leave": {"type": ["string", "null"]},
+                            "locationId": {"type": ["string", "null"]},
+                            "locationName": {"type": ["string", "null"]},
+                        },
+                    },
+                ],
+            },
+            "missing_fields": {
+                "type": "array",
+                "items": {
+                    "type": "string",
+                    "enum": ["date", "time", "location"],
+                },
+            },
+            "next_action": {
+                "type": "string",
+                "enum": [
+                    "ask_clarification",
+                    "check_availability",
+                    "propose_slots",
+                    "confirm_booking",
+                    "cancel_booking",
+                    "none",
+                ],
+            },
+        },
+    },
+}
+
+
+def get_openai_client() -> OpenAI:
+    global client
+
+    if client is None:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+    return client
 
 
 def extract_json(text: str) -> dict:
@@ -306,9 +380,10 @@ Esempio corretto con richiesta completa:
             }
         )
 
-        response = client.responses.create(
+        response = get_openai_client().responses.create(
             model=os.getenv("OPENAI_MODEL", "gpt-5.4-mini"),
             input=input_messages,
+            text={"format": CHAT_RESPONSE_FORMAT},
         )
 
         raw = response.output_text

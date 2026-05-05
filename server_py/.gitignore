@@ -1,11 +1,19 @@
-.env
-.env.*
-__pycache__/
-*.pyc
+# Ignore original Go project folders
+server/
+example/
+healthcheck/
+e2e/
+
+# Ignore local/dev files
 .venv/
 venv/
-.vscode/
-.idea/
-test_pw.py
+.env
+__pycache__/
+*.pyc
 node_modules/
 dist/
+build/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

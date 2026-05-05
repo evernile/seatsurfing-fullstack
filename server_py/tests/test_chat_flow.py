@@ -24,7 +24,8 @@ def test_chat_endpoint_missing_location():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -62,7 +63,8 @@ def test_chat_endpoint_availability_request():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -102,7 +104,8 @@ def test_chat_endpoint_modify_request():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -150,7 +153,8 @@ def test_chat_endpoint_uses_history():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -198,7 +202,8 @@ def test_chat_endpoint_selected_location_is_added_if_missing_from_openai():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -249,7 +254,8 @@ def test_chat_endpoint_booking_request():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -286,7 +292,8 @@ def test_chat_endpoint_missing_time():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -310,7 +317,8 @@ def test_chat_endpoint_invalid_json_from_openai_uses_fallback():
     fake_openai_response.output_text = "Risposta non JSON"
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -341,7 +349,8 @@ def test_chat_endpoint_cancel_request():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -370,7 +379,8 @@ def test_chat_endpoint_out_of_scope_weather_question():
     """
 
     with patch.dict(os.environ, {"OPENAI_API_KEY": "fake-key"}):
-        with patch("app.api.chat.client.responses.create", return_value=fake_openai_response):
+        with patch("app.api.chat.get_openai_client") as get_openai_client:
+            get_openai_client.return_value.responses.create.return_value = fake_openai_response
             response = client.post(
                 "/chat/",
                 json={
@@ -390,3 +400,5 @@ def test_chat_endpoint_out_of_scope_weather_question():
     assert data["parsed"]["leave"] is None
     assert data["parsed"]["locationId"] is None
     assert data["parsed"]["locationName"] is None
+
+
